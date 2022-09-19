@@ -33,4 +33,4 @@ jobs:
         poetry install --no-dev --no-root --no-interaction --with test
     
     - name: Run pytest tests
-      run: pytest
+      run: python -m pytest

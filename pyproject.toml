@@ -34,7 +34,6 @@ optional = true
 sphinx = "^3.4.3"
 recommonmark = "^0.7.1"
 furo = "^2021.4.11b34"
-#investpy = "^1.0.8" # TODO: huh??
 
 [build-system]
 requires = ["poetry-core>=1.1.0"]
@@ -76,3 +75,6 @@ disable = [
 
 [tool.pylint.deprecated_builtins]
 bad-functions = ["map", "filter", "apply", "reduce"]
+
+[tool.pytest.ini_options]
+pythonpath = ["investpy"]

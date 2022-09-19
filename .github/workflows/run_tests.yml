@@ -2,8 +2,7 @@ name: run_tests
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
     paths:
       - .github/**
       - investpy/**

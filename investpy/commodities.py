@@ -3,13 +3,13 @@
 
 import json
 import warnings
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from random import randint
 
+import cloudscraper
 import pandas as pd
 import pkg_resources
 import pytz
-import requests
 from lxml.html import fromstring
 from unidecode import unidecode
 
@@ -21,6 +21,8 @@ from .data.commodities_data import (
 )
 from .utils.data import Data
 from .utils.extra import random_user_agent
+
+scraper = cloudscraper.create_scraper()
 
 
 def get_commodities(group=None):
@@ -150,9 +152,7 @@ def get_commodity_groups():
     return commodity_groups_list()
 
 
-def get_commodity_recent_data(
-    commodity, country=None, as_json=False, order="ascending", interval="Daily"
-):
+def get_commodity_recent_data(commodity, country=None, as_json=False, order="ascending", interval="Daily"):
     """
     This function retrieves recent historical data from the introduced commodity from Investing.com, which will be
     returned as a :obj:`pandas.DataFrame` if the parameters are valid and the request to Investing.com succeeds.
@@ -222,49 +222,35 @@ def get_commodity_recent_data(
     """
 
     if not commodity:
-        raise ValueError(
-            "ERR#0078: commodity parameter is mandatory and must be a valid commodity"
-            " name."
-        )
+        raise ValueError("ERR#0078: commodity parameter is mandatory and must be a valid commodity" " name.")
 
     if not isinstance(commodity, str):
-        raise ValueError(
-            "ERR#0078: commodity parameter is mandatory and must be a valid commodity"
-            " name."
-        )
+        raise ValueError("ERR#0078: commodity parameter is mandatory and must be a valid commodity" " name.")
 
     if country is not None and not isinstance(country, str):
         raise ValueError("ERR#0025: specified country value not valid.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     if order not in ["ascending", "asc", "descending", "desc"]:
-        raise ValueError(
-            "ERR#0003: order argument can just be ascending (asc) or descending (desc),"
-            " str type."
-        )
+        raise ValueError("ERR#0003: order argument can just be ascending (asc) or descending (desc)," " str type.")
 
     if not interval:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     if not isinstance(interval, str):
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     interval = interval.lower()
 
     if interval not in ["daily", "weekly", "monthly"]:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     resource_package = "investpy"
@@ -283,14 +269,10 @@ def get_commodity_recent_data(
     commodity = unidecode(commodity.strip().lower())
 
     if commodity not in list(commodities["name"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0079: commodity " + commodity + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0079: commodity " + commodity + " not found, check if it is correct.")
 
     if country is None:
-        found_commodities = commodities[
-            commodities["name"].apply(unidecode).str.lower() == commodity
-        ]
+        found_commodities = commodities[commodities["name"].apply(unidecode).str.lower() == commodity]
 
         if len(found_commodities) > 1:
             msg = (
@@ -308,9 +290,7 @@ def get_commodity_recent_data(
         country = unidecode(country.strip().lower())
 
         if country not in list(set(commodities["country"].str.lower())):
-            raise RuntimeError(
-                "ERR#0034: country " + country + " not found, check if it is correct."
-            )
+            raise RuntimeError("ERR#0034: country " + country + " not found, check if it is correct.")
 
         commodities = commodities[commodities["country"] == country]
 
@@ -318,12 +298,8 @@ def get_commodity_recent_data(
         (commodities["name"].apply(unidecode).str.lower() == commodity).idxmax(),
         "full_name",
     ]
-    id_ = commodities.loc[
-        (commodities["name"].apply(unidecode).str.lower() == commodity).idxmax(), "id"
-    ]
-    name = commodities.loc[
-        (commodities["name"].apply(unidecode).str.lower() == commodity).idxmax(), "name"
-    ]
+    id_ = commodities.loc[(commodities["name"].apply(unidecode).str.lower() == commodity).idxmax(), "id"]
+    name = commodities.loc[(commodities["name"].apply(unidecode).str.lower() == commodity).idxmax(), "name"]
 
     currency = commodities.loc[
         (commodities["name"].apply(unidecode).str.lower() == commodity).idxmax(),
@@ -352,12 +328,10 @@ def get_commodity_recent_data(
 
     url = "https://www.investing.com/instruments/HistoricalDataAjax"
 
-    req = requests.post(url, headers=head, data=params)
+    req = scraper.post(url, headers=head, data=params)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root_ = fromstring(req.text)
     path_ = root_.xpath(".//table[@id='curr_table']/tbody/tr")
@@ -366,9 +340,7 @@ def get_commodity_recent_data(
     if path_:
         for elements_ in path_:
             if elements_.xpath(".//td")[0].text_content() == "No results found":
-                raise IndexError(
-                    "ERR#0080: commodity information unavailable or not found."
-                )
+                raise IndexError("ERR#0080: commodity information unavailable or not found.")
 
             info = []
 
@@ -376,9 +348,7 @@ def get_commodity_recent_data(
                 info.append(nested_.get("data-real-value"))
 
             commodity_date = datetime.strptime(
-                str(
-                    datetime.fromtimestamp(int(info[0]), tz=pytz.timezone("GMT")).date()
-                ),
+                str(datetime.fromtimestamp(int(info[0]), tz=pytz.timezone("GMT")).date()),
                 "%Y-%m-%d",
             )
 
@@ -416,9 +386,7 @@ def get_commodity_recent_data(
 
             return json.dumps(json_, sort_keys=False)
         elif as_json is False:
-            df = pd.DataFrame.from_records(
-                [value.commodity_to_dict() for value in result]
-            )
+            df = pd.DataFrame.from_records([value.commodity_to_dict() for value in result])
             df.set_index("Date", inplace=True)
 
             return df
@@ -506,73 +474,52 @@ def get_commodity_historical_data(
     """
 
     if not commodity:
-        raise ValueError(
-            "ERR#0078: commodity parameter is mandatory and must be a valid commodity"
-            " name."
-        )
+        raise ValueError("ERR#0078: commodity parameter is mandatory and must be a valid commodity" " name.")
 
     if not isinstance(commodity, str):
-        raise ValueError(
-            "ERR#0078: commodity parameter is mandatory and must be a valid commodity"
-            " name."
-        )
+        raise ValueError("ERR#0078: commodity parameter is mandatory and must be a valid commodity" " name.")
 
     if country is not None and not isinstance(country, str):
         raise ValueError("ERR#0025: specified country value not valid.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     if order not in ["ascending", "asc", "descending", "desc"]:
-        raise ValueError(
-            "ERR#0003: order argument can just be ascending (asc) or descending (desc),"
-            " str type."
-        )
+        raise ValueError("ERR#0003: order argument can just be ascending (asc) or descending (desc)," " str type.")
 
     if not interval:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     if not isinstance(interval, str):
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     interval = interval.lower()
 
     if interval not in ["daily", "weekly", "monthly"]:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     try:
         datetime.strptime(from_date, "%d/%m/%Y")
     except ValueError:
-        raise ValueError(
-            "ERR#0011: incorrect from_date date format, it should be 'dd/mm/yyyy'."
-        )
+        raise ValueError("ERR#0011: incorrect from_date date format, it should be 'dd/mm/yyyy'.")
 
     try:
         datetime.strptime(to_date, "%d/%m/%Y")
     except ValueError:
-        raise ValueError(
-            "ERR#0012: incorrect to_date format, it should be 'dd/mm/yyyy'."
-        )
+        raise ValueError("ERR#0012: incorrect to_date format, it should be 'dd/mm/yyyy'.")
 
     start_date = datetime.strptime(from_date, "%d/%m/%Y")
     end_date = datetime.strptime(to_date, "%d/%m/%Y")
 
     if start_date >= end_date:
-        raise ValueError(
-            "ERR#0032: to_date should be greater than from_date, both formatted as"
-            " 'dd/mm/yyyy'."
-        )
+        raise ValueError("ERR#0032: to_date should be greater than from_date, both formatted as" " 'dd/mm/yyyy'.")
 
     date_interval = {
         "intervals": [],
@@ -586,16 +533,12 @@ def get_commodity_historical_data(
         if diff > 19:
             obj = {
                 "start": start_date.strftime("%m/%d/%Y"),
-                "end": start_date.replace(year=start_date.year + 19).strftime(
-                    "%m/%d/%Y"
-                ),
+                "end": start_date.replace(year=start_date.year + 19).strftime("%m/%d/%Y"),
             }
 
             date_interval["intervals"].append(obj)
 
-            start_date = start_date.replace(year=start_date.year + 19) + timedelta(
-                days=1
-            )
+            start_date = start_date.replace(year=start_date.year + 19) + timedelta(days=1)
         else:
             obj = {
                 "start": start_date.strftime("%m/%d/%Y"),
@@ -627,14 +570,10 @@ def get_commodity_historical_data(
     commodity = unidecode(commodity.strip().lower())
 
     if commodity not in list(commodities["name"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0079: commodity " + commodity + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0079: commodity " + commodity + " not found, check if it is correct.")
 
     if country is None:
-        found_commodities = commodities[
-            commodities["name"].apply(unidecode).str.lower() == commodity
-        ]
+        found_commodities = commodities[commodities["name"].apply(unidecode).str.lower() == commodity]
 
         if len(found_commodities) > 1:
             msg = (
@@ -652,9 +591,7 @@ def get_commodity_historical_data(
         country = unidecode(country.strip().lower())
 
         if country not in list(set(commodities["country"].str.lower())):
-            raise RuntimeError(
-                "ERR#0034: country " + country + " not found, check if it is correct."
-            )
+            raise RuntimeError("ERR#0034: country " + country + " not found, check if it is correct.")
 
         commodities = commodities[commodities["country"] == country]
 
@@ -662,12 +599,8 @@ def get_commodity_historical_data(
         (commodities["name"].apply(unidecode).str.lower() == commodity).idxmax(),
         "full_name",
     ]
-    id_ = commodities.loc[
-        (commodities["name"].apply(unidecode).str.lower() == commodity).idxmax(), "id"
-    ]
-    name = commodities.loc[
-        (commodities["name"].apply(unidecode).str.lower() == commodity).idxmax(), "name"
-    ]
+    id_ = commodities.loc[(commodities["name"].apply(unidecode).str.lower() == commodity).idxmax(), "id"]
+    name = commodities.loc[(commodities["name"].apply(unidecode).str.lower() == commodity).idxmax(), "name"]
 
     currency = commodities.loc[
         (commodities["name"].apply(unidecode).str.lower() == commodity).idxmax(),
@@ -703,12 +636,10 @@ def get_commodity_historical_data(
 
         url = "https://www.investing.com/instruments/HistoricalDataAjax"
 
-        req = requests.post(url, headers=head, data=params)
+        req = scraper.post(url, headers=head, data=params)
 
         if req.status_code != 200:
-            raise ConnectionError(
-                "ERR#0015: error " + str(req.status_code) + ", try again later."
-            )
+            raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
         if not req.text:
             continue
@@ -724,9 +655,7 @@ def get_commodity_historical_data(
                     if interval_counter < interval_limit:
                         data_flag = False
                     else:
-                        raise IndexError(
-                            "ERR#0080: commodity information unavailable or not found."
-                        )
+                        raise IndexError("ERR#0080: commodity information unavailable or not found.")
                 else:
                     data_flag = True
 
@@ -737,11 +666,7 @@ def get_commodity_historical_data(
 
                 if data_flag is True:
                     commodity_date = datetime.strptime(
-                        str(
-                            datetime.fromtimestamp(
-                                int(info[0]), tz=pytz.timezone("GMT")
-                            ).date()
-                        ),
+                        str(datetime.fromtimestamp(int(info[0]), tz=pytz.timezone("GMT")).date()),
                         "%Y-%m-%d",
                     )
 
@@ -777,9 +702,7 @@ def get_commodity_historical_data(
 
                     final.append(json_list)
                 elif as_json is False:
-                    df = pd.DataFrame.from_records(
-                        [value.commodity_to_dict() for value in result]
-                    )
+                    df = pd.DataFrame.from_records([value.commodity_to_dict() for value in result])
                     df.set_index("Date", inplace=True)
 
                     final.append(df)
@@ -851,24 +774,16 @@ def get_commodity_information(commodity, country=None, as_json=False):
     """
 
     if not commodity:
-        raise ValueError(
-            "ERR#0078: commodity parameter is mandatory and must be a valid commodity"
-            " name."
-        )
+        raise ValueError("ERR#0078: commodity parameter is mandatory and must be a valid commodity" " name.")
 
     if not isinstance(commodity, str):
-        raise ValueError(
-            "ERR#0078: commodity parameter is mandatory and must be a valid commodity"
-            " name."
-        )
+        raise ValueError("ERR#0078: commodity parameter is mandatory and must be a valid commodity" " name.")
 
     if country is not None and not isinstance(country, str):
         raise ValueError("ERR#0025: specified country value not valid.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     resource_package = "investpy"
     resource_path = "/".join(("resources", "commodities.csv"))
@@ -886,14 +801,10 @@ def get_commodity_information(commodity, country=None, as_json=False):
     commodity = unidecode(commodity.strip().lower())
 
     if commodity not in list(commodities["name"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0079: commodity " + commodity + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0079: commodity " + commodity + " not found, check if it is correct.")
 
     if country is None:
-        found_commodities = commodities[
-            commodities["name"].apply(unidecode).str.lower() == commodity
-        ]
+        found_commodities = commodities[commodities["name"].apply(unidecode).str.lower() == commodity]
 
         if len(found_commodities) > 1:
             msg = (
@@ -911,18 +822,12 @@ def get_commodity_information(commodity, country=None, as_json=False):
         country = unidecode(country.strip().lower())
 
         if country not in list(set(commodities["country"].str.lower())):
-            raise RuntimeError(
-                "ERR#0034: country " + country + " not found, check if it is correct."
-            )
+            raise RuntimeError("ERR#0034: country " + country + " not found, check if it is correct.")
 
         commodities = commodities[commodities["country"] == country]
 
-    name = commodities.loc[
-        (commodities["name"].apply(unidecode).str.lower() == commodity).idxmax(), "name"
-    ]
-    tag = commodities.loc[
-        (commodities["name"].apply(unidecode).str.lower() == commodity).idxmax(), "tag"
-    ]
+    name = commodities.loc[(commodities["name"].apply(unidecode).str.lower() == commodity).idxmax(), "name"]
+    tag = commodities.loc[(commodities["name"].apply(unidecode).str.lower() == commodity).idxmax(), "tag"]
 
     url = "https://www.investing.com/commodities/" + tag
 
@@ -934,12 +839,10 @@ def get_commodity_information(commodity, country=None, as_json=False):
         "Connection": "keep-alive",
     }
 
-    req = requests.get(url, headers=head)
+    req = scraper.get(url, headers=head)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root_ = fromstring(req.text)
     path_ = root_.xpath("//dl[@data-test='key-info']/div")
@@ -980,9 +883,7 @@ def get_commodity_information(commodity, country=None, as_json=False):
                 pass
             try:
                 text = element.text_content().strip()
-                result.at[0, title_] = datetime.strptime(text, "%m/%d/%Y").strftime(
-                    "%d/%m/%Y"
-                )
+                result.at[0, title_] = datetime.strptime(text, "%m/%d/%Y").strftime("%d/%m/%Y")
                 continue
             except:
                 pass
@@ -1061,19 +962,13 @@ def get_commodities_overview(group, as_json=False, n_results=100):
         raise ValueError("ERR#0090: group can not be None, it should be a str.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     if not isinstance(n_results, int):
-        raise ValueError(
-            "ERR#0089: n_results argument should be an integer between 1 and 1000."
-        )
+        raise ValueError("ERR#0089: n_results argument should be an integer between 1 and 1000.")
 
     if 1 > n_results or n_results > 1000:
-        raise ValueError(
-            "ERR#0089: n_results argument should be an integer between 1 and 1000."
-        )
+        raise ValueError("ERR#0089: n_results argument should be an integer between 1 and 1000.")
 
     resource_package = "investpy"
     resource_path = "/".join(("resources", "commodities.csv"))
@@ -1105,12 +1000,10 @@ def get_commodities_overview(group, as_json=False, n_results=100):
 
     url = "https://www.investing.com/commodities/" + group
 
-    req = requests.get(url, headers=head)
+    req = scraper.get(url, headers=head)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root_ = fromstring(req.text)
     table = root_.xpath(".//table[@id='cross_rate_1']/tbody/tr")
@@ -1120,29 +1013,19 @@ def get_commodities_overview(group, as_json=False, n_results=100):
     if len(table) > 0:
         for row in table[:n_results]:
             id_ = row.get("id").replace("pair_", "")
-            country_check = (
-                row.xpath(".//td[@class='flag']/span")[0].get("title").lower()
-            )
+            country_check = row.xpath(".//td[@class='flag']/span")[0].get("title").lower()
 
-            name = (
-                row.xpath(".//td[contains(@class, 'elp')]/a")[0].text_content().strip()
-            )
+            name = row.xpath(".//td[contains(@class, 'elp')]/a")[0].text_content().strip()
 
             pid = "pid-" + id_
 
             last = row.xpath(".//td[@class='" + pid + "-last']")[0].text_content()
-            last_close = row.xpath(".//td[@class='" + pid + "-last_close']")[
-                0
-            ].text_content()
+            last_close = row.xpath(".//td[@class='" + pid + "-last_close']")[0].text_content()
             high = row.xpath(".//td[@class='" + pid + "-high']")[0].text_content()
             low = row.xpath(".//td[@class='" + pid + "-low']")[0].text_content()
 
-            pc = row.xpath(".//td[contains(@class, '" + pid + "-pc')]")[
-                0
-            ].text_content()
-            pcp = row.xpath(".//td[contains(@class, '" + pid + "-pcp')]")[
-                0
-            ].text_content()
+            pc = row.xpath(".//td[contains(@class, '" + pid + "-pc')]")[0].text_content()
+            pcp = row.xpath(".//td[contains(@class, '" + pid + "-pcp')]")[0].text_content()
 
             data = {
                 "country": country_check if country_check != "" else None,
@@ -1154,23 +1037,16 @@ def get_commodities_overview(group, as_json=False, n_results=100):
                 "change": pc,
                 "change_percentage": pcp,
                 "currency": commodities.loc[
-                    (
-                        (commodities["name"] == name)
-                        & (commodities["country"] == country_check)
-                    ).idxmax(),
+                    ((commodities["name"] == name) & (commodities["country"] == country_check)).idxmax(),
                     "currency",
                 ]
                 if country_check != ""
-                else commodities.loc[
-                    (commodities["name"] == name).idxmax(), "currency"
-                ],
+                else commodities.loc[(commodities["name"] == name).idxmax(), "currency"],
             }
 
             results.append(data)
     else:
-        raise RuntimeError(
-            "ERR#0092: no data found while retrieving the overview from Investing.com"
-        )
+        raise RuntimeError("ERR#0092: no data found while retrieving the overview from Investing.com")
 
     df = pd.DataFrame(results)
 
@@ -1206,24 +1082,16 @@ def search_commodities(by, value):
     """
 
     if not by:
-        raise ValueError(
-            "ERR#0006: the introduced field to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0006: the introduced field to search is mandatory and should be a str.")
 
     if not isinstance(by, str):
-        raise ValueError(
-            "ERR#0006: the introduced field to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0006: the introduced field to search is mandatory and should be a str.")
 
     if not value:
-        raise ValueError(
-            "ERR#0017: the introduced value to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0017: the introduced value to search is mandatory and should be a str.")
 
     if not isinstance(value, str):
-        raise ValueError(
-            "ERR#0017: the introduced value to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0017: the introduced value to search is mandatory and should be a str.")
 
     resource_package = "investpy"
     resource_path = "/".join(("resources", "commodities.csv"))
@@ -1244,8 +1112,7 @@ def search_commodities(by, value):
 
     if isinstance(by, str) and by not in available_search_fields:
         raise ValueError(
-            "ERR#0026: the introduced field to search can either just be "
-            + " or ".join(available_search_fields)
+            "ERR#0026: the introduced field to search can either just be " + " or ".join(available_search_fields)
         )
 
     commodities["matches"] = commodities[by].str.contains(value, case=False)
@@ -1253,9 +1120,7 @@ def search_commodities(by, value):
     search_result = commodities.loc[commodities["matches"] == True].copy()
 
     if len(search_result) == 0:
-        raise RuntimeError(
-            "ERR#0043: no results were found for the introduced " + str(by) + "."
-        )
+        raise RuntimeError("ERR#0043: no results were found for the introduced " + str(by) + ".")
 
     search_result.drop(columns=["matches"], inplace=True)
     search_result.reset_index(drop=True, inplace=True)

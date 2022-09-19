@@ -2,26 +2,22 @@
 # See LICENSE for details.
 
 import json
-from datetime import date, datetime, timedelta
-from random import randint
+from datetime import datetime
 
+import cloudscraper
 import pandas as pd
 import pkg_resources
 import pytz
-import requests
 from dateutil import relativedelta
 from lxml.html import fromstring
 from unidecode import unidecode
 
-from .data.stocks_data import (
-    stock_countries_as_list,
-    stocks_as_df,
-    stocks_as_dict,
-    stocks_as_list,
-)
+from .data.stocks_data import stocks_as_df, stocks_as_dict, stocks_as_list
 from .utils import constant as cst
 from .utils.data import Data
 from .utils.extra import random_user_agent
+
+scraper = cloudscraper.create_scraper()
 
 
 def get_stocks(country=None):
@@ -145,9 +141,7 @@ def get_stock_countries():
     return list(cst.STOCK_COUNTRIES.keys())
 
 
-def get_stock_recent_data(
-    stock, country, as_json=False, order="ascending", interval="Daily"
-):
+def get_stock_recent_data(stock, country, as_json=False, order="ascending", interval="Daily"):
     """
     This function retrieves recent historical data from the introduced stock from Investing.com. So on, the recent data
     of the introduced stock from the specified country will be retrieved and returned as a :obj:`pandas.DataFrame` if
@@ -217,9 +211,7 @@ def get_stock_recent_data(
     """
 
     if not stock:
-        raise ValueError(
-            "ERR#0013: stock parameter is mandatory and must be a valid stock symbol."
-        )
+        raise ValueError("ERR#0013: stock parameter is mandatory and must be a valid stock symbol.")
 
     if not isinstance(stock, str):
         raise ValueError("ERR#0027: stock argument needs to be a str.")
@@ -231,34 +223,26 @@ def get_stock_recent_data(
         raise ValueError("ERR#0025: specified country value not valid.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     if order not in ["ascending", "asc", "descending", "desc"]:
-        raise ValueError(
-            "ERR#0003: order argument can just be ascending (asc) or descending (desc),"
-            " str type."
-        )
+        raise ValueError("ERR#0003: order argument can just be ascending (asc) or descending (desc)," " str type.")
 
     if not interval:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     if not isinstance(interval, str):
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     interval = interval.lower()
 
     if interval not in ["daily", "weekly", "monthly"]:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     resource_package = "investpy"
@@ -277,34 +261,20 @@ def get_stock_recent_data(
     country = unidecode(country.strip().lower())
 
     if country not in get_stock_countries():
-        raise RuntimeError(
-            "ERR#0034: country "
-            + country.lower()
-            + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0034: country " + country.lower() + " not found, check if it is correct.")
 
     stocks = stocks[stocks["country"] == country]
 
     stock = unidecode(stock.strip().lower())
 
     if stock not in list(stocks["symbol"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0018: stock " + stock + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0018: stock " + stock + " not found, check if it is correct.")
 
-    symbol = stocks.loc[
-        (stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "symbol"
-    ]
-    id_ = stocks.loc[
-        (stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "id"
-    ]
-    name = stocks.loc[
-        (stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "name"
-    ]
+    symbol = stocks.loc[(stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "symbol"]
+    id_ = stocks.loc[(stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "id"]
+    name = stocks.loc[(stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "name"]
 
-    stock_currency = stocks.loc[
-        (stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "currency"
-    ]
+    stock_currency = stocks.loc[(stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "currency"]
 
     end_date = datetime.today()
     start_date = end_date - relativedelta.relativedelta(months=1)
@@ -327,12 +297,10 @@ def get_stock_recent_data(
 
     url = f"https://api.investing.com/api/financialdata/historical/{id_}"
 
-    req = requests.get(url, params=params, headers=headers)
+    req = scraper.get(url, params=params, headers=headers)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     data = req.json()["data"]
 
@@ -343,11 +311,7 @@ def get_stock_recent_data(
 
     for entry in data:
         stock_date = datetime.strptime(
-            str(
-                datetime.fromtimestamp(
-                    entry["rowDateRaw"], tz=pytz.timezone("GMT")
-                ).date()
-            ),
+            str(datetime.fromtimestamp(entry["rowDateRaw"], tz=pytz.timezone("GMT")).date()),
             "%Y-%m-%d",
         )
 
@@ -471,9 +435,7 @@ def get_stock_historical_data(
     """
 
     if not stock:
-        raise ValueError(
-            "ERR#0013: stock parameter is mandatory and must be a valid stock symbol."
-        )
+        raise ValueError("ERR#0013: stock parameter is mandatory and must be a valid stock symbol.")
 
     if not isinstance(stock, str):
         raise ValueError("ERR#0027: stock argument needs to be a str.")
@@ -485,58 +447,43 @@ def get_stock_historical_data(
         raise ValueError("ERR#0025: specified country value not valid.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     if order not in ["ascending", "asc", "descending", "desc"]:
-        raise ValueError(
-            "ERR#0003: order argument can just be ascending (asc) or descending (desc),"
-            " str type."
-        )
+        raise ValueError("ERR#0003: order argument can just be ascending (asc) or descending (desc)," " str type.")
 
     if not interval:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     if not isinstance(interval, str):
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     interval = interval.lower()
 
     if interval not in ["daily", "weekly", "monthly"]:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     try:
         datetime.strptime(from_date, "%d/%m/%Y")
     except ValueError:
-        raise ValueError(
-            "ERR#0011: incorrect from_date date format, it should be 'dd/mm/yyyy'."
-        )
+        raise ValueError("ERR#0011: incorrect from_date date format, it should be 'dd/mm/yyyy'.")
 
     try:
         datetime.strptime(to_date, "%d/%m/%Y")
     except ValueError:
-        raise ValueError(
-            "ERR#0012: incorrect to_date format, it should be 'dd/mm/yyyy'."
-        )
+        raise ValueError("ERR#0012: incorrect to_date format, it should be 'dd/mm/yyyy'.")
 
     start_date = datetime.strptime(from_date, "%d/%m/%Y")
     end_date = datetime.strptime(to_date, "%d/%m/%Y")
 
     if start_date >= end_date:
-        raise ValueError(
-            "ERR#0032: to_date should be greater than from_date, both formatted as"
-            " 'dd/mm/yyyy'."
-        )
+        raise ValueError("ERR#0032: to_date should be greater than from_date, both formatted as" " 'dd/mm/yyyy'.")
 
     resource_package = "investpy"
     resource_path = "/".join((("resources", "stocks.csv")))
@@ -554,34 +501,20 @@ def get_stock_historical_data(
     country = unidecode(country.strip().lower())
 
     if country not in get_stock_countries():
-        raise RuntimeError(
-            "ERR#0034: country "
-            + country.lower()
-            + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0034: country " + country.lower() + " not found, check if it is correct.")
 
     stocks = stocks[stocks["country"] == country]
 
     stock = unidecode(stock.strip().lower())
 
     if stock not in list(stocks["symbol"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0018: stock " + stock + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0018: stock " + stock + " not found, check if it is correct.")
 
-    symbol = stocks.loc[
-        (stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "symbol"
-    ]
-    id_ = stocks.loc[
-        (stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "id"
-    ]
-    name = stocks.loc[
-        (stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "name"
-    ]
+    symbol = stocks.loc[(stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "symbol"]
+    id_ = stocks.loc[(stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "id"]
+    name = stocks.loc[(stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "name"]
 
-    stock_currency = stocks.loc[
-        (stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "currency"
-    ]
+    stock_currency = stocks.loc[(stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "currency"]
 
     params = {
         "start-date": start_date.strftime("%Y-%m-%d"),
@@ -601,12 +534,10 @@ def get_stock_historical_data(
 
     url = f"https://api.investing.com/api/financialdata/historical/{id_}"
 
-    req = requests.get(url, params=params, headers=headers)
+    req = scraper.get(url, params=params, headers=headers)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     data = req.json()["data"]
 
@@ -617,11 +548,7 @@ def get_stock_historical_data(
 
     for entry in data:
         stock_date = datetime.strptime(
-            str(
-                datetime.fromtimestamp(
-                    entry["rowDateRaw"], tz=pytz.timezone("GMT")
-                ).date()
-            ),
+            str(datetime.fromtimestamp(entry["rowDateRaw"], tz=pytz.timezone("GMT")).date()),
             "%Y-%m-%d",
         )
 
@@ -724,9 +651,7 @@ def get_stock_company_profile(stock, country="spain", language="english"):
     }
 
     if not stock:
-        raise ValueError(
-            "ERR#0013: stock parameter is mandatory and must be a valid stock symbol."
-        )
+        raise ValueError("ERR#0013: stock parameter is mandatory and must be a valid stock symbol.")
 
     if not isinstance(stock, str):
         raise ValueError("ERR#0027: stock argument needs to be a str.")
@@ -741,22 +666,16 @@ def get_stock_company_profile(stock, country="spain", language="english"):
 
     if language not in available_sources.keys():
         raise ValueError(
-            "ERR#0014: the specified language is not valid, it can just be either"
-            " spanish (es) or english (en)."
+            "ERR#0014: the specified language is not valid, it can just be either" " spanish (es) or english (en)."
         )
 
     country = unidecode(country.strip().lower())
 
     if country not in get_stock_countries():
-        raise RuntimeError(
-            "ERR#0034: country " + country + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0034: country " + country + " not found, check if it is correct.")
 
     if country != "spain" and language == "spanish":
-        raise ValueError(
-            "ERR#0127: currently spanish company description is just available for"
-            " spanish stocks."
-        )
+        raise ValueError("ERR#0127: currently spanish company description is just available for" " spanish stocks.")
 
     selected_source = available_sources[language]
 
@@ -778,16 +697,12 @@ def get_stock_company_profile(stock, country="spain", language="english"):
     stock = unidecode(stock.strip().lower())
 
     if stock not in list(stocks["symbol"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0018: stock " + stock + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0018: stock " + stock + " not found, check if it is correct.")
 
     company_profile = {"url": None, "desc": None}
 
     if selected_source == "Bolsa de Madrid":
-        isin = stocks.loc[
-            (stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "isin"
-        ]
+        isin = stocks.loc[(stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "isin"]
 
         url = "http://www.bolsamadrid.es/esp/aspx/Empresas/FichaValor.aspx?ISIN=" + isin
 
@@ -801,12 +716,10 @@ def get_stock_company_profile(stock, country="spain", language="english"):
             "Connection": "keep-alive",
         }
 
-        req = requests.get(url, headers=head)
+        req = scraper.get(url, headers=head)
 
         if req.status_code != 200:
-            raise ConnectionError(
-                "ERR#0015: error " + str(req.status_code) + ", try again later."
-            )
+            raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
         root_ = fromstring(req.text)
 
@@ -820,16 +733,12 @@ def get_stock_company_profile(stock, country="spain", language="english"):
 
             text = "".join(text)
 
-            company_profile["desc"] = " ".join(
-                text.replace("\n", " ").replace("\xa0", " ").split()
-            )
+            company_profile["desc"] = " ".join(text.replace("\n", " ").replace("\xa0", " ").split())
 
         return company_profile
 
     elif selected_source == "Investing":
-        tag = stocks.loc[
-            (stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "tag"
-        ]
+        tag = stocks.loc[(stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "tag"]
 
         url = "https://www.investing.com/equities/" + tag + "-company-profile"
 
@@ -843,12 +752,10 @@ def get_stock_company_profile(stock, country="spain", language="english"):
             "Connection": "keep-alive",
         }
 
-        req = requests.get(url, headers=head)
+        req = scraper.get(url, headers=head)
 
         if req.status_code != 200:
-            raise ConnectionError(
-                "ERR#0015: error " + str(req.status_code) + ", try again later."
-            )
+            raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
         root_ = fromstring(req.text)
 
@@ -888,9 +795,7 @@ def get_stock_dividends(stock, country):
     """
 
     if not stock:
-        raise ValueError(
-            "ERR#0013: stock parameter is mandatory and must be a valid stock symbol."
-        )
+        raise ValueError("ERR#0013: stock parameter is mandatory and must be a valid stock symbol.")
 
     if not isinstance(stock, str):
         raise ValueError("ERR#0027: stock argument needs to be a str.")
@@ -917,24 +822,16 @@ def get_stock_dividends(stock, country):
     country = unidecode(country.strip().lower())
 
     if country not in get_stock_countries():
-        raise RuntimeError(
-            "ERR#0034: country "
-            + country.lower()
-            + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0034: country " + country.lower() + " not found, check if it is correct.")
 
     stocks = stocks[stocks["country"] == country]
 
     stock = unidecode(stock.strip().lower())
 
     if stock not in list(stocks["symbol"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0018: stock " + stock + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0018: stock " + stock + " not found, check if it is correct.")
 
-    tag_ = stocks.loc[
-        (stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "tag"
-    ]
+    tag_ = stocks.loc[(stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "tag"]
 
     headers = {
         "User-Agent": random_user_agent(),
@@ -946,12 +843,10 @@ def get_stock_dividends(stock, country):
 
     url = "https://www.investing.com/equities/" + str(tag_) + "-dividends"
 
-    req = requests.get(url=url, headers=headers)
+    req = scraper.get(url=url, headers=headers)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root_ = fromstring(req.text)
     path_ = root_.xpath(".//table[contains(@id, 'dividendsHistoryData')]")
@@ -959,9 +854,7 @@ def get_stock_dividends(stock, country):
     if path_:
         more_results_id = path_[0].get("id").replace("dividendsHistoryData", "")
 
-        path_ = root_.xpath(
-            ".//table[@id='dividendsHistoryData" + str(more_results_id) + "']/tbody/tr"
-        )
+        path_ = root_.xpath(".//table[@id='dividendsHistoryData" + str(more_results_id) + "']/tbody/tr")
 
         objs = list()
 
@@ -977,23 +870,15 @@ def get_stock_dividends(stock, country):
             last_timestamp = path_[-1].get("event_timestamp")
 
             for elements_ in path_:
-                dividend_date = (
-                    dividend_value
-                ) = dividend_type = dividend_payment_date = dividend_yield = None
+                dividend_date = dividend_value = dividend_type = dividend_payment_date = dividend_yield = None
                 for element_ in elements_.xpath(".//td"):
                     if element_.get("class"):
                         if element_.get("class").__contains__("first"):
                             dividend_date = datetime.strptime(
-                                str(
-                                    datetime.fromtimestamp(
-                                        int(element_.get("data-value"))
-                                    ).date()
-                                ),
+                                str(datetime.fromtimestamp(int(element_.get("data-value"))).date()),
                                 "%Y-%m-%d",
                             )
-                            dividend_value = float(
-                                element_.getnext().text_content().replace(",", "")
-                            )
+                            dividend_value = float(element_.getnext().text_content().replace(",", ""))
                         if element_.get("data-value") in type_values.keys():
                             dividend_type = type_values[element_.get("data-value")]
                             try:
@@ -1035,12 +920,10 @@ def get_stock_dividends(stock, country):
 
                 url = "https://www.investing.com/equities/MoreDividendsHistory"
 
-                req = requests.post(url=url, headers=headers, params=params)
+                req = scraper.post(url=url, headers=headers, params=params)
 
                 if req.status_code != 200:
-                    raise ConnectionError(
-                        "ERR#0015: error " + str(req.status_code) + ", try again later."
-                    )
+                    raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
                 res = req.json()
 
@@ -1057,35 +940,19 @@ def get_stock_dividends(stock, country):
                     last_timestamp = path_[-1].get("event_timestamp")
 
                     for elements_ in path_:
-                        dividend_date = (
-                            dividend_value
-                        ) = (
-                            dividend_type
-                        ) = dividend_payment_date = dividend_yield = None
+                        dividend_date = dividend_value = dividend_type = dividend_payment_date = dividend_yield = None
                         for element_ in elements_.xpath(".//td"):
                             if element_.get("class"):
                                 if element_.get("class").__contains__("first"):
                                     dividend_date = datetime.strptime(
-                                        str(
-                                            datetime.fromtimestamp(
-                                                int(element_.get("data-value"))
-                                            ).date()
-                                        ),
+                                        str(datetime.fromtimestamp(int(element_.get("data-value"))).date()),
                                         "%Y-%m-%d",
                                     )
-                                    dividend_value = float(
-                                        element_.getnext()
-                                        .text_content()
-                                        .replace(",", "")
-                                    )
+                                    dividend_value = float(element_.getnext().text_content().replace(",", ""))
                                 if element_.get("data-value") in type_values.keys():
-                                    dividend_type = type_values[
-                                        element_.get("data-value")
-                                    ]
+                                    dividend_type = type_values[element_.get("data-value")]
                                     try:
-                                        value = int(
-                                            element_.getnext().get("data-value")
-                                        )
+                                        value = int(element_.getnext().get("data-value"))
                                         dividend_payment_date = datetime.strptime(
                                             str(datetime.fromtimestamp(value).date()),
                                             "%Y-%m-%d",
@@ -1093,9 +960,7 @@ def get_stock_dividends(stock, country):
                                     except:
                                         dividend_payment_date = None
                                     next_element_ = element_.getnext()
-                                    dividend_yield = (
-                                        next_element_.getnext().text_content()
-                                    )
+                                    dividend_yield = next_element_.getnext().text_content()
                         obj = {
                             "Date": dividend_date,
                             "Dividend": dividend_value,
@@ -1109,9 +974,7 @@ def get_stock_dividends(stock, country):
         df = pd.DataFrame(objs)
         return df
     else:
-        raise RuntimeError(
-            "ERR#0061: introduced stock has no dividend's data to display."
-        )
+        raise RuntimeError("ERR#0061: introduced stock has no dividend's data to display.")
 
 
 def get_stock_information(stock, country, as_json=False):
@@ -1163,9 +1026,7 @@ def get_stock_information(stock, country, as_json=False):
     """
 
     if not stock:
-        raise ValueError(
-            "ERR#0013: stock parameter is mandatory and must be a valid stock symbol."
-        )
+        raise ValueError("ERR#0013: stock parameter is mandatory and must be a valid stock symbol.")
 
     if not isinstance(stock, str):
         raise ValueError("ERR#0027: stock argument needs to be a str.")
@@ -1177,9 +1038,7 @@ def get_stock_information(stock, country, as_json=False):
         raise ValueError("ERR#0025: specified country value not valid.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     resource_package = "investpy"
     resource_path = "/".join((("resources", "stocks.csv")))
@@ -1197,24 +1056,16 @@ def get_stock_information(stock, country, as_json=False):
     country = unidecode(country.strip().lower())
 
     if country not in get_stock_countries():
-        raise RuntimeError(
-            "ERR#0034: country "
-            + country.lower()
-            + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0034: country " + country.lower() + " not found, check if it is correct.")
 
     stocks = stocks[stocks["country"] == country]
 
     stock = unidecode(stock.strip().lower())
 
     if stock not in list(stocks["symbol"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0018: stock " + stock + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0018: stock " + stock + " not found, check if it is correct.")
 
-    tag = stocks.loc[
-        (stocks["symbol"].apply(unidecode).str.lower() == stock.lower()).idxmax(), "tag"
-    ]
+    tag = stocks.loc[(stocks["symbol"].apply(unidecode).str.lower() == stock.lower()).idxmax(), "tag"]
     stock = stocks.loc[
         (stocks["symbol"].apply(unidecode).str.lower() == stock.lower()).idxmax(),
         "symbol",
@@ -1230,12 +1081,10 @@ def get_stock_information(stock, country, as_json=False):
         "Connection": "keep-alive",
     }
 
-    req = requests.get(url, headers=headers)
+    req = scraper.get(url, headers=headers)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root_ = fromstring(req.text)
     path_ = root_.xpath("//dl[contains(@class, 'grid')]/div")
@@ -1278,9 +1127,7 @@ def get_stock_information(stock, country, as_json=False):
                 pass
             try:
                 text = value_.strip()
-                result.at[0, title_] = datetime.strptime(text, "%b %d, %Y").strftime(
-                    "%d/%m/%Y"
-                )
+                result.at[0, title_] = datetime.strptime(text, "%b %d, %Y").strftime("%d/%m/%Y")
                 continue
             except:
                 pass
@@ -1347,19 +1194,13 @@ def get_stocks_overview(country, as_json=False, n_results=100):
         raise ValueError("ERR#0025: specified country value not valid.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     if not isinstance(n_results, int):
-        raise ValueError(
-            "ERR#0089: n_results argument should be an integer between 1 and 1000."
-        )
+        raise ValueError("ERR#0089: n_results argument should be an integer between 1 and 1000.")
 
     if 1 > n_results or n_results > 1000:
-        raise ValueError(
-            "ERR#0089: n_results argument should be an integer between 1 and 1000."
-        )
+        raise ValueError("ERR#0089: n_results argument should be an integer between 1 and 1000.")
 
     resource_package = "investpy"
     resource_path = "/".join((("resources", "stocks.csv")))
@@ -1399,12 +1240,10 @@ def get_stocks_overview(country, as_json=False, n_results=100):
 
     url = "https://www.investing.com/equities/StocksFilter"
 
-    req = requests.get(url, params=params, headers=head)
+    req = scraper.get(url, params=params, headers=head)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root_ = fromstring(req.text)
     table = root_.xpath(".//table[@id='cross_rate_markets_stocks_1']/tbody/tr")
@@ -1414,9 +1253,7 @@ def get_stocks_overview(country, as_json=False, n_results=100):
     if len(table) > 0:
         for row in table[:n_results]:
             id_ = row.get("id").replace("pair_", "")
-            country_check = (
-                row.xpath(".//td[@class='flag']/span")[0].get("title").lower()
-            )
+            country_check = row.xpath(".//td[@class='flag']/span")[0].get("title").lower()
 
             if country_check == "bosnia-herzegovina":
                 country_check = "bosnia"
@@ -1427,9 +1264,7 @@ def get_stocks_overview(country, as_json=False, n_results=100):
             elif country_check == "cote d'ivoire":
                 country_check = "ivory coast"
 
-            name = (
-                row.xpath(".//td[contains(@class, 'elp')]/a")[0].text_content().strip()
-            )
+            name = row.xpath(".//td[contains(@class, 'elp')]/a")[0].text_content().strip()
 
             pid = "pid-" + id_
 
@@ -1437,16 +1272,10 @@ def get_stocks_overview(country, as_json=False, n_results=100):
             high = row.xpath(".//td[@class='" + pid + "-high']")[0].text_content()
             low = row.xpath(".//td[@class='" + pid + "-low']")[0].text_content()
 
-            pc = row.xpath(".//td[contains(@class, '" + pid + "-pc')]")[
-                0
-            ].text_content()
-            pcp = row.xpath(".//td[contains(@class, '" + pid + "-pcp')]")[
-                0
-            ].text_content()
+            pc = row.xpath(".//td[contains(@class, '" + pid + "-pc')]")[0].text_content()
+            pcp = row.xpath(".//td[contains(@class, '" + pid + "-pcp')]")[0].text_content()
 
-            turnover = row.xpath(".//td[contains(@class, '" + pid + "-turnover')]")[
-                0
-            ].text_content()
+            turnover = row.xpath(".//td[contains(@class, '" + pid + "-turnover')]")[0].text_content()
 
             if turnover.__contains__("K"):
                 turnover = float(turnover.replace("K", "").replace(",", "")) * 1e3
@@ -1470,9 +1299,7 @@ def get_stocks_overview(country, as_json=False, n_results=100):
 
             results.append(data)
     else:
-        raise RuntimeError(
-            "ERR#0092: no data found while retrieving the overview from Investing.com"
-        )
+        raise RuntimeError("ERR#0092: no data found while retrieving the overview from Investing.com")
 
     df = pd.DataFrame(results)
 
@@ -1482,9 +1309,7 @@ def get_stocks_overview(country, as_json=False, n_results=100):
         return df
 
 
-def get_stock_financial_summary(
-    stock, country, summary_type="income_statement", period="annual"
-):
+def get_stock_financial_summary(stock, country, summary_type="income_statement", period="annual"):
     """
     This function retrieves the financial summary of the introduced stock (by symbol) from the introduced
     country, based on the summary_type value this function returns a different type of financial summary, so
@@ -1531,9 +1356,7 @@ def get_stock_financial_summary(
     """
 
     if not stock:
-        raise ValueError(
-            "ERR#0013: stock parameter is mandatory and must be a valid stock symbol."
-        )
+        raise ValueError("ERR#0013: stock parameter is mandatory and must be a valid stock symbol.")
 
     if not isinstance(stock, str):
         raise ValueError("ERR#0027: stock argument needs to be a str.")
@@ -1588,24 +1411,16 @@ def get_stock_financial_summary(
     country = unidecode(country.strip().lower())
 
     if country not in get_stock_countries():
-        raise RuntimeError(
-            "ERR#0034: country "
-            + country.lower()
-            + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0034: country " + country.lower() + " not found, check if it is correct.")
 
     stocks = stocks[stocks["country"] == country]
 
     stock = unidecode(stock.strip().lower())
 
     if stock not in list(stocks["symbol"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0018: stock " + stock + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0018: stock " + stock + " not found, check if it is correct.")
 
-    id_ = stocks.loc[
-        (stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "id"
-    ]
+    id_ = stocks.loc[(stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "id"]
 
     headers = {
         "User-Agent": random_user_agent(),
@@ -1625,12 +1440,10 @@ def get_stock_financial_summary(
 
     url = "https://www.investing.com/instruments/Financials/changesummaryreporttypeajax"
 
-    req = requests.get(url, params=params, headers=headers)
+    req = scraper.get(url, params=params, headers=headers)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root = fromstring(req.text)
     tables = root.xpath(
@@ -1644,9 +1457,7 @@ def get_stock_financial_summary(
 
     for element in table.xpath(".//thead")[0].xpath(".//th"):
         if element.get("class") is None:
-            data["Date"].append(
-                datetime.strptime(element.text_content().strip(), "%b %d, %Y")
-            )
+            data["Date"].append(datetime.strptime(element.text_content().strip(), "%b %d, %Y"))
 
     for element in table.xpath(".//tbody")[0].xpath(".//tr"):
         curr_row = None
@@ -1689,24 +1500,16 @@ def search_stocks(by, value):
     """
 
     if not by:
-        raise ValueError(
-            "ERR#0006: the introduced field to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0006: the introduced field to search is mandatory and should be a str.")
 
     if not isinstance(by, str):
-        raise ValueError(
-            "ERR#0006: the introduced field to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0006: the introduced field to search is mandatory and should be a str.")
 
     if not value:
-        raise ValueError(
-            "ERR#0017: the introduced value to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0017: the introduced value to search is mandatory and should be a str.")
 
     if not isinstance(value, str):
-        raise ValueError(
-            "ERR#0017: the introduced value to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0017: the introduced value to search is mandatory and should be a str.")
 
     resource_package = "investpy"
     resource_path = "/".join((("resources", "stocks.csv")))
@@ -1727,8 +1530,7 @@ def search_stocks(by, value):
 
     if isinstance(by, str) and by not in available_search_fields:
         raise ValueError(
-            "ERR#0026: the introduced field to search can either just be "
-            + " or ".join(available_search_fields)
+            "ERR#0026: the introduced field to search can either just be " + " or ".join(available_search_fields)
         )
 
     stocks["matches"] = stocks[by].str.contains(value, case=False)
@@ -1736,9 +1538,7 @@ def search_stocks(by, value):
     search_result = stocks.loc[stocks["matches"] == True].copy()
 
     if len(search_result) == 0:
-        raise RuntimeError(
-            "ERR#0043: no results were found for the introduced " + str(by) + "."
-        )
+        raise RuntimeError("ERR#0043: no results were found for the introduced " + str(by) + ".")
 
     search_result.drop(columns=["matches"], inplace=True)
     search_result.reset_index(drop=True, inplace=True)

@@ -2,13 +2,13 @@
 # See LICENSE for details.
 
 import json
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from random import randint
 
+import cloudscraper
 import pandas as pd
 import pkg_resources
 import pytz
-import requests
 from lxml.html import fromstring
 from unidecode import unidecode
 
@@ -20,6 +20,8 @@ from .data.funds_data import (
 )
 from .utils.data import Data
 from .utils.extra import random_user_agent
+
+scraper = cloudscraper.create_scraper()
 
 
 def get_funds(country=None):
@@ -146,9 +148,7 @@ def get_fund_countries():
     return fund_countries_as_list()
 
 
-def get_fund_recent_data(
-    fund, country, as_json=False, order="ascending", interval="Daily"
-):
+def get_fund_recent_data(fund, country, as_json=False, order="ascending", interval="Daily"):
     """
     This function retrieves recent historical data from the introduced `fund` from Investing
     via Web Scraping. The resulting data can it either be stored in a :obj:`pandas.DataFrame` or in a
@@ -214,9 +214,7 @@ def get_fund_recent_data(
     """
 
     if not fund:
-        raise ValueError(
-            "ERR#0029: fund parameter is mandatory and must be a valid fund name."
-        )
+        raise ValueError("ERR#0029: fund parameter is mandatory and must be a valid fund name.")
 
     if not isinstance(fund, str):
         raise ValueError("ERR#0028: fund argument needs to be a str.")
@@ -228,34 +226,26 @@ def get_fund_recent_data(
         raise ValueError("ERR#0025: specified country value not valid.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     if order not in ["ascending", "asc", "descending", "desc"]:
-        raise ValueError(
-            "ERR#0003: order argument can just be ascending (asc) or descending (desc),"
-            " str type."
-        )
+        raise ValueError("ERR#0003: order argument can just be ascending (asc) or descending (desc)," " str type.")
 
     if not interval:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     if not isinstance(interval, str):
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     interval = interval.lower()
 
     if interval not in ["daily", "weekly", "monthly"]:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     resource_package = "investpy"
@@ -274,29 +264,19 @@ def get_fund_recent_data(
     country = unidecode(country.strip().lower())
 
     if country not in get_fund_countries():
-        raise RuntimeError(
-            "ERR#0034: country " + country + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0034: country " + country + " not found, check if it is correct.")
 
     funds = funds[funds["country"].str.lower() == country]
 
     fund = unidecode(fund.strip().lower())
 
     if fund not in list(funds["name"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0019: fund " + fund + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0019: fund " + fund + " not found, check if it is correct.")
 
-    symbol = funds.loc[
-        (funds["name"].apply(unidecode).str.lower() == fund).idxmax(), "symbol"
-    ]
+    symbol = funds.loc[(funds["name"].apply(unidecode).str.lower() == fund).idxmax(), "symbol"]
     id_ = funds.loc[(funds["name"].apply(unidecode).str.lower() == fund).idxmax(), "id"]
-    name = funds.loc[
-        (funds["name"].apply(unidecode).str.lower() == fund).idxmax(), "name"
-    ]
-    fund_currency = funds.loc[
-        (funds["name"].apply(unidecode).str.lower() == fund).idxmax(), "currency"
-    ]
+    name = funds.loc[(funds["name"].apply(unidecode).str.lower() == fund).idxmax(), "name"]
+    fund_currency = funds.loc[(funds["name"].apply(unidecode).str.lower() == fund).idxmax(), "currency"]
 
     header = symbol + " Historical Data"
 
@@ -320,12 +300,10 @@ def get_fund_recent_data(
 
     url = "https://www.investing.com/instruments/HistoricalDataAjax"
 
-    req = requests.post(url, headers=head, data=params)
+    req = scraper.post(url, headers=head, data=params)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root_ = fromstring(req.text)
     path_ = root_.xpath(".//table[@id='curr_table']/tbody/tr")
@@ -342,9 +320,7 @@ def get_fund_recent_data(
                 info.append(nested_.get("data-real-value"))
 
             fund_date = datetime.strptime(
-                str(
-                    datetime.fromtimestamp(int(info[0]), tz=pytz.timezone("GMT")).date()
-                ),
+                str(datetime.fromtimestamp(int(info[0]), tz=pytz.timezone("GMT")).date()),
                 "%Y-%m-%d",
             )
 
@@ -461,9 +437,7 @@ def get_fund_historical_data(
     """
 
     if not fund:
-        raise ValueError(
-            "ERR#0029: fund parameter is mandatory and must be a valid fund name."
-        )
+        raise ValueError("ERR#0029: fund parameter is mandatory and must be a valid fund name.")
 
     if not isinstance(fund, str):
         raise ValueError("ERR#0028: fund argument needs to be a str.")
@@ -475,58 +449,43 @@ def get_fund_historical_data(
         raise ValueError("ERR#0025: specified country value not valid.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     if order not in ["ascending", "asc", "descending", "desc"]:
-        raise ValueError(
-            "ERR#0003: order argument can just be ascending (asc) or descending (desc),"
-            " str type."
-        )
+        raise ValueError("ERR#0003: order argument can just be ascending (asc) or descending (desc)," " str type.")
 
     if not interval:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     if not isinstance(interval, str):
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     interval = interval.lower()
 
     if interval not in ["daily", "weekly", "monthly"]:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     try:
         datetime.strptime(from_date, "%d/%m/%Y")
     except ValueError:
-        raise ValueError(
-            "ERR#0011: incorrect start date format, it should be 'dd/mm/yyyy'."
-        )
+        raise ValueError("ERR#0011: incorrect start date format, it should be 'dd/mm/yyyy'.")
 
     try:
         datetime.strptime(to_date, "%d/%m/%Y")
     except ValueError:
-        raise ValueError(
-            "ERR#0012: incorrect to_date format, it should be 'dd/mm/yyyy'."
-        )
+        raise ValueError("ERR#0012: incorrect to_date format, it should be 'dd/mm/yyyy'.")
 
     start_date = datetime.strptime(from_date, "%d/%m/%Y")
     end_date = datetime.strptime(to_date, "%d/%m/%Y")
 
     if start_date >= end_date:
-        raise ValueError(
-            "ERR#0032: to_date should be greater than from_date, both formatted as"
-            " 'dd/mm/yyyy'."
-        )
+        raise ValueError("ERR#0032: to_date should be greater than from_date, both formatted as" " 'dd/mm/yyyy'.")
 
     date_interval = {
         "intervals": [],
@@ -540,16 +499,12 @@ def get_fund_historical_data(
         if diff > 19:
             obj = {
                 "start": start_date.strftime("%m/%d/%Y"),
-                "end": start_date.replace(year=start_date.year + 19).strftime(
-                    "%m/%d/%Y"
-                ),
+                "end": start_date.replace(year=start_date.year + 19).strftime("%m/%d/%Y"),
             }
 
             date_interval["intervals"].append(obj)
 
-            start_date = start_date.replace(year=start_date.year + 19) + timedelta(
-                days=1
-            )
+            start_date = start_date.replace(year=start_date.year + 19) + timedelta(days=1)
         else:
             obj = {
                 "start": start_date.strftime("%m/%d/%Y"),
@@ -581,29 +536,19 @@ def get_fund_historical_data(
     country = unidecode(country.strip().lower())
 
     if country not in get_fund_countries():
-        raise RuntimeError(
-            "ERR#0034: country " + country + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0034: country " + country + " not found, check if it is correct.")
 
     funds = funds[funds["country"].str.lower() == country]
 
     fund = unidecode(fund.strip().lower())
 
     if fund not in list(funds["name"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0019: fund " + fund + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0019: fund " + fund + " not found, check if it is correct.")
 
-    symbol = funds.loc[
-        (funds["name"].apply(unidecode).str.lower() == fund).idxmax(), "symbol"
-    ]
+    symbol = funds.loc[(funds["name"].apply(unidecode).str.lower() == fund).idxmax(), "symbol"]
     id_ = funds.loc[(funds["name"].apply(unidecode).str.lower() == fund).idxmax(), "id"]
-    name = funds.loc[
-        (funds["name"].apply(unidecode).str.lower() == fund).idxmax(), "name"
-    ]
-    fund_currency = funds.loc[
-        (funds["name"].apply(unidecode).str.lower() == fund).idxmax(), "currency"
-    ]
+    name = funds.loc[(funds["name"].apply(unidecode).str.lower() == fund).idxmax(), "name"]
+    fund_currency = funds.loc[(funds["name"].apply(unidecode).str.lower() == fund).idxmax(), "currency"]
 
     final = list()
 
@@ -632,12 +577,10 @@ def get_fund_historical_data(
 
         url = "https://www.investing.com/instruments/HistoricalDataAjax"
 
-        req = requests.post(url, headers=head, data=params)
+        req = scraper.post(url, headers=head, data=params)
 
         if req.status_code != 200:
-            raise ConnectionError(
-                "ERR#0015: error " + str(req.status_code) + ", try again later."
-            )
+            raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
         if not req.text:
             continue
@@ -653,9 +596,7 @@ def get_fund_historical_data(
                     if interval_counter < interval_limit:
                         data_flag = False
                     else:
-                        raise IndexError(
-                            "ERR#0008: fund information unavailable or not found."
-                        )
+                        raise IndexError("ERR#0008: fund information unavailable or not found.")
                 else:
                     data_flag = True
 
@@ -666,11 +607,7 @@ def get_fund_historical_data(
 
                 if data_flag is True:
                     fund_date = datetime.strptime(
-                        str(
-                            datetime.fromtimestamp(
-                                int(info[0]), tz=pytz.timezone("GMT")
-                            ).date()
-                        ),
+                        str(datetime.fromtimestamp(int(info[0]), tz=pytz.timezone("GMT")).date()),
                         "%Y-%m-%d",
                     )
 
@@ -704,9 +641,7 @@ def get_fund_historical_data(
 
                     final.append(json_list)
                 elif as_json is False:
-                    df = pd.DataFrame.from_records(
-                        [value.fund_to_dict() for value in result]
-                    )
+                    df = pd.DataFrame.from_records([value.fund_to_dict() for value in result])
                     df.set_index("Date", inplace=True)
 
                     final.append(df)
@@ -769,9 +704,7 @@ def get_fund_information(fund, country, as_json=False):
     """
 
     if not fund:
-        raise ValueError(
-            "ERR#0029: fund parameter is mandatory and must be a valid fund name."
-        )
+        raise ValueError("ERR#0029: fund parameter is mandatory and must be a valid fund name.")
 
     if not isinstance(fund, str):
         raise ValueError("ERR#0028: fund argument needs to be a str.")
@@ -783,9 +716,7 @@ def get_fund_information(fund, country, as_json=False):
         raise ValueError("ERR#0025: specified country value not valid.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     resource_package = "investpy"
     resource_path = "/".join(("resources", "funds.csv"))
@@ -803,22 +734,16 @@ def get_fund_information(fund, country, as_json=False):
     country = unidecode(country.strip().lower())
 
     if country not in get_fund_countries():
-        raise RuntimeError(
-            "ERR#0034: country " + country + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0034: country " + country + " not found, check if it is correct.")
 
     funds = funds[funds["country"] == country]
 
     fund = unidecode(fund.strip().lower())
 
     if fund not in list(funds["name"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0019: fund " + fund + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0019: fund " + fund + " not found, check if it is correct.")
 
-    tag = funds.loc[
-        (funds["name"].apply(unidecode).str.lower() == fund).idxmax(), "tag"
-    ]
+    tag = funds.loc[(funds["name"].apply(unidecode).str.lower() == fund).idxmax(), "tag"]
 
     url = "https://www.investing.com/funds/" + tag
 
@@ -830,12 +755,10 @@ def get_fund_information(fund, country, as_json=False):
         "Connection": "keep-alive",
     }
 
-    req = requests.get(url, headers=head)
+    req = scraper.get(url, headers=head)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root_ = fromstring(req.text)
     path_ = root_.xpath("//div[contains(@class, 'overviewDataTable')]/div")
@@ -871,17 +794,13 @@ def get_fund_information(fund, country, as_json=False):
                 title_ = "Todays Range"
             if title_ in result.columns.tolist():
                 try:
-                    result.at[0, title_] = float(
-                        element.getnext().text_content().replace(",", "")
-                    )
+                    result.at[0, title_] = float(element.getnext().text_content().replace(",", ""))
                     continue
                 except:
                     pass
                 try:
                     text = element.getnext().text_content().strip()
-                    result.at[0, title_] = datetime.strptime(
-                        text, "%b %d, %Y"
-                    ).strftime("%d/%m/%Y")
+                    result.at[0, title_] = datetime.strptime(text, "%b %d, %Y").strftime("%d/%m/%Y")
                     continue
                 except:
                     pass
@@ -954,19 +873,13 @@ def get_funds_overview(country, as_json=False, n_results=100):
         raise ValueError("ERR#0025: specified country value not valid.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     if not isinstance(n_results, int):
-        raise ValueError(
-            "ERR#0089: n_results argument should be an integer between 1 and 1000."
-        )
+        raise ValueError("ERR#0089: n_results argument should be an integer between 1 and 1000.")
 
     if 1 > n_results or n_results > 1000:
-        raise ValueError(
-            "ERR#0089: n_results argument should be an integer between 1 and 1000."
-        )
+        raise ValueError("ERR#0089: n_results argument should be an integer between 1 and 1000.")
 
     resource_package = "investpy"
     resource_path = "/".join(("resources", "funds.csv"))
@@ -1001,18 +914,12 @@ def get_funds_overview(country, as_json=False, n_results=100):
         "Connection": "keep-alive",
     }
 
-    url = (
-        "https://www.investing.com/funds/"
-        + country.replace(" ", "-")
-        + "-funds?&issuer_filter=0"
-    )
+    url = "https://www.investing.com/funds/" + country.replace(" ", "-") + "-funds?&issuer_filter=0"
 
-    req = requests.get(url, headers=head)
+    req = scraper.get(url, headers=head)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root_ = fromstring(req.text)
     table = root_.xpath(".//table[@id='etfs']/tbody/tr")
@@ -1037,9 +944,7 @@ def get_funds_overview(country, as_json=False, n_results=100):
             if last == "":
                 continue
 
-            change_path = (
-                ".//td[contains(@class, '" + "pid-" + str(id_) + "-pcp" + "')]"
-            )
+            change_path = ".//td[contains(@class, '" + "pid-" + str(id_) + "-pcp" + "')]"
             change = row.xpath(change_path)[0].text_content()
 
             total_assets_path = change_path
@@ -1049,17 +954,11 @@ def get_funds_overview(country, as_json=False, n_results=100):
                 total_assets = 0
             else:
                 if total_assets.__contains__("K"):
-                    total_assets = (
-                        float(total_assets.replace("K", "").replace(",", "")) * 1e3
-                    )
+                    total_assets = float(total_assets.replace("K", "").replace(",", "")) * 1e3
                 elif total_assets.__contains__("M"):
-                    total_assets = (
-                        float(total_assets.replace("M", "").replace(",", "")) * 1e6
-                    )
+                    total_assets = float(total_assets.replace("M", "").replace(",", "")) * 1e6
                 elif total_assets.__contains__("B"):
-                    total_assets = (
-                        float(total_assets.replace("B", "").replace(",", "")) * 1e9
-                    )
+                    total_assets = float(total_assets.replace("B", "").replace(",", "")) * 1e9
                 else:
                     total_assets = float(total_assets.replace(",", ""))
 
@@ -1076,9 +975,7 @@ def get_funds_overview(country, as_json=False, n_results=100):
 
             results.append(data)
     else:
-        raise RuntimeError(
-            "ERR#0092: no data found while retrieving the overview from Investing.com"
-        )
+        raise RuntimeError("ERR#0092: no data found while retrieving the overview from Investing.com")
 
     df = pd.DataFrame(results)
 
@@ -1114,24 +1011,16 @@ def search_funds(by, value):
     """
 
     if not by:
-        raise ValueError(
-            "ERR#0006: the introduced field to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0006: the introduced field to search is mandatory and should be a str.")
 
     if not isinstance(by, str):
-        raise ValueError(
-            "ERR#0006: the introduced field to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0006: the introduced field to search is mandatory and should be a str.")
 
     if not value:
-        raise ValueError(
-            "ERR#0017: the introduced value to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0017: the introduced value to search is mandatory and should be a str.")
 
     if not isinstance(value, str):
-        raise ValueError(
-            "ERR#0017: the introduced value to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0017: the introduced value to search is mandatory and should be a str.")
 
     resource_package = "investpy"
     resource_path = "/".join(("resources", "funds.csv"))
@@ -1152,8 +1041,7 @@ def search_funds(by, value):
 
     if isinstance(by, str) and by not in available_search_fields:
         raise ValueError(
-            "ERR#0026: the introduced field to search can either just be "
-            + " or ".join(available_search_fields)
+            "ERR#0026: the introduced field to search can either just be " + " or ".join(available_search_fields)
         )
 
     funds["matches"] = funds[by].str.contains(value, case=False)
@@ -1161,9 +1049,7 @@ def search_funds(by, value):
     search_result = funds.loc[funds["matches"] == True].copy()
 
     if len(search_result) == 0:
-        raise RuntimeError(
-            "ERR#0043: no results were found for the introduced " + str(by) + "."
-        )
+        raise RuntimeError("ERR#0043: no results were found for the introduced " + str(by) + ".")
 
     search_result.drop(columns=["matches"], inplace=True)
     search_result.reset_index(drop=True, inplace=True)

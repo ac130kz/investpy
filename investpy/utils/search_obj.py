@@ -2,17 +2,18 @@
 # See LICENSE for details.
 
 import json
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from random import randint
 
+import cloudscraper
 import pandas as pd
 import pytz
-import requests
 from lxml.html import fromstring
 
 from .constant import FUNDS_INTERVAL_FILTERS, INTERVAL_FILTERS, OUTDATED2UPDATED
-from .data import Data
 from .extra import random_user_agent
+
+scraper = cloudscraper.create_scraper()
 
 
 class SearchObj(object):
@@ -88,9 +89,7 @@ class SearchObj(object):
             header = f"{self.name} Historical Data"
             headers, params = self._prepare_request(header)
 
-        self.data = self._data_retrieval(
-            product=self.pair_type, headers=headers, params=params
-        )
+        self.data = self._data_retrieval(product=self.pair_type, headers=headers, params=params)
         self._convert2df()
         return self.data
 
@@ -122,25 +121,18 @@ class SearchObj(object):
         try:
             datetime.strptime(from_date, "%d/%m/%Y")
         except ValueError:
-            raise ValueError(
-                "ERR#0011: incorrect from_date date format, it should be 'dd/mm/yyyy'."
-            )
+            raise ValueError("ERR#0011: incorrect from_date date format, it should be 'dd/mm/yyyy'.")
 
         try:
             datetime.strptime(to_date, "%d/%m/%Y")
         except ValueError:
-            raise ValueError(
-                "ERR#0012: incorrect to_date format, it should be 'dd/mm/yyyy'."
-            )
+            raise ValueError("ERR#0012: incorrect to_date format, it should be 'dd/mm/yyyy'.")
 
         from_date = datetime.strptime(from_date, "%d/%m/%Y")
         to_date = datetime.strptime(to_date, "%d/%m/%Y")
 
         if from_date >= to_date:
-            raise ValueError(
-                "ERR#0032: to_date should be greater than from_date, both formatted as"
-                " 'dd/mm/yyyy'."
-            )
+            raise ValueError("ERR#0032: to_date should be greater than from_date, both formatted as" " 'dd/mm/yyyy'.")
 
         if self.pair_type in ["stocks", "funds", "etfs", "currencies", "certificates"]:
             header = f"{self.symbol} Historical Data"
@@ -159,9 +151,7 @@ class SearchObj(object):
                     header=header, from_date=interval["from"], to_date=interval["to"]
                 )
                 try:
-                    self.data += self._data_retrieval(
-                        product=self.pair_type, headers=headers, params=params
-                    )
+                    self.data += self._data_retrieval(product=self.pair_type, headers=headers, params=params)
                 except:
                     continue
 
@@ -173,9 +163,7 @@ class SearchObj(object):
                 from_date=from_date.strftime("%m/%d/%Y"),
                 to_date=to_date.strftime("%m/%d/%Y"),
             )
-            self.data = self._data_retrieval(
-                product=self.pair_type, headers=headers, params=params
-            )
+            self.data = self._data_retrieval(product=self.pair_type, headers=headers, params=params)
 
         self._convert2df()
         return self.data
@@ -211,12 +199,10 @@ class SearchObj(object):
             "Connection": "keep-alive",
         }
 
-        req = requests.get(url, headers=headers)
+        req = scraper.get(url, headers=headers)
 
         if req.status_code != 200:
-            raise ConnectionError(
-                f"ERR#0015: error {req.status_code}, try again later."
-            )
+            raise ConnectionError(f"ERR#0015: error {req.status_code}, try again later.")
 
         # Just change this list once the update is included for all the other products
         updated_for = ["stocks"]
@@ -239,9 +225,7 @@ class SearchObj(object):
         if not updated_path and not outdated_path:
             raise RuntimeError("ERR#0004: data retrieval error while scraping.")
 
-        path_, investing_updated = (
-            (updated_path, True) if updated_path else (outdated_path, False)
-        )
+        path_, investing_updated = (updated_path, True) if updated_path else (outdated_path, False)
 
         self.information = dict()
 
@@ -328,10 +312,7 @@ class SearchObj(object):
         """
 
         if self.pair_type in []:
-            raise ValueError(
-                "Investing.com does not provide technical indicators for"
-                f" {self.pair_type}."
-            )
+            raise ValueError("Investing.com does not provide technical indicators for" f" {self.pair_type}.")
 
         if self.pair_type != "funds" and interval not in INTERVAL_FILTERS:
             raise ValueError(
@@ -363,17 +344,13 @@ class SearchObj(object):
 
         url = "https://www.investing.com/instruments/Service/GetTechincalData"
 
-        req = requests.post(url, headers=headers, data=params)
+        req = scraper.post(url, headers=headers, data=params)
 
         if req.status_code != 200:
-            raise ConnectionError(
-                f"ERR#0015: error {req.status_code}, try again later."
-            )
+            raise ConnectionError(f"ERR#0015: error {req.status_code}, try again later.")
 
         root_ = fromstring(req.text)
-        table_ = root_.xpath(
-            ".//table[contains(@class, 'technicalIndicatorsTbl')]/tbody/tr"
-        )
+        table_ = root_.xpath(".//table[contains(@class, 'technicalIndicatorsTbl')]/tbody/tr")
 
         if not table_:
             raise RuntimeError("ERR#0004: data retrieval error while scraping.")
@@ -387,9 +364,7 @@ class SearchObj(object):
                         {
                             "indicator": value.text_content().strip(),
                             "value": float(value.getnext().text_content().strip()),
-                            "signal": (
-                                value.getnext().getnext().text_content().strip().lower()
-                            ).replace(" ", "_"),
+                            "signal": (value.getnext().getnext().text_content().strip().lower()).replace(" ", "_"),
                         },
                         ignore_index=True,
                     )
@@ -425,12 +400,10 @@ class SearchObj(object):
             "Connection": "keep-alive",
         }
 
-        req = requests.get(url, headers=headers)
+        req = scraper.get(url, headers=headers)
 
         if req.status_code != 200:
-            raise ConnectionError(
-                f"ERR#0015: error {req.status_code}, try again later."
-            )
+            raise ConnectionError(f"ERR#0015: error {req.status_code}, try again later.")
 
         # Just change this list once the update is included for all the other products
         updated_for = ["stocks"]
@@ -447,20 +420,15 @@ class SearchObj(object):
         ]
 
         root_ = fromstring(req.text)
-        updated_path = root_.xpath(
-            "//div[contains(@class, 'instrument-metadata_currency')]/span"
-        )
+        updated_path = root_.xpath("//div[contains(@class, 'instrument-metadata_currency')]/span")
         outdated_path = root_.xpath(
-            "//div[@id='quotes_summary_current_data']/div/div/div[contains(@class,"
-            " 'bottom')]/span[@class='bold']"
+            "//div[@id='quotes_summary_current_data']/div/div/div[contains(@class," " 'bottom')]/span[@class='bold']"
         )
 
         if not updated_path and not outdated_path:
             raise RuntimeError("ERR#0004: data retrieval error while scraping.")
 
-        path_, investing_updated = (
-            (updated_path, True) if updated_path else (outdated_path, False)
-        )
+        path_, investing_updated = (updated_path, True) if updated_path else (outdated_path, False)
 
         self.default_currency = path_[-1].text_content().strip()
         return self.default_currency
@@ -519,15 +487,11 @@ class SearchObj(object):
                 intervals.append(
                     {
                         "from": from_date.strftime("%m/%d/%Y"),
-                        "to": from_date.replace(year=from_date.year + 19).strftime(
-                            "%m/%d/%Y"
-                        ),
+                        "to": from_date.replace(year=from_date.year + 19).strftime("%m/%d/%Y"),
                     }
                 )
 
-                from_date = from_date.replace(year=from_date.year + 19) + timedelta(
-                    days=1
-                )
+                from_date = from_date.replace(year=from_date.year + 19) + timedelta(days=1)
             else:
                 intervals.append(
                     {
@@ -541,22 +505,15 @@ class SearchObj(object):
         return intervals
 
     def _data_retrieval(self, product, headers, params):
-        has_volume = (
-            True
-            if product
-            in ["stocks", "etfs", "indices", "cryptos", "commodities", "fxfutures"]
-            else False
-        )
+        has_volume = True if product in ["stocks", "etfs", "indices", "cryptos", "commodities", "fxfutures"] else False
         has_change_pct = True  # Every financial product has it
 
         url = "https://www.investing.com/instruments/HistoricalDataAjax"
 
-        req = requests.post(url, headers=headers, data=params)
+        req = scraper.post(url, headers=headers, data=params)
 
         if req.status_code != 200:
-            raise ConnectionError(
-                f"ERR#0015: error {req.status_code}, try again later."
-            )
+            raise ConnectionError(f"ERR#0015: error {req.status_code}, try again later.")
 
         root_ = fromstring(req.text)
         path_ = root_.xpath(".//table[@id='curr_table']/tbody/tr")
@@ -581,11 +538,7 @@ class SearchObj(object):
 
             result = {
                 "Date": datetime.strptime(
-                    str(
-                        datetime.fromtimestamp(
-                            int(info[0]), tz=pytz.timezone("GMT")
-                        ).date()
-                    ),
+                    str(datetime.fromtimestamp(int(info[0]), tz=pytz.timezone("GMT")).date()),
                     "%Y-%m-%d",
                 ),
                 "Open": float(info[2].replace(",", "")),

@@ -3,13 +3,13 @@
 
 import json
 import re
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from random import randint
 
+import cloudscraper
 import pandas as pd
 import pkg_resources
 import pytz
-import requests
 from lxml.html import fromstring
 from unidecode import unidecode
 
@@ -21,6 +21,8 @@ from .data.bonds_data import (
 )
 from .utils.data import Data
 from .utils.extra import random_user_agent
+
+scraper = cloudscraper.create_scraper()
 
 
 def get_bonds(country=None):
@@ -211,42 +213,32 @@ def get_bond_recent_data(bond, as_json=False, order="ascending", interval="Daily
     """
 
     if not bond:
-        raise ValueError(
-            "ERR#0066: bond parameter is mandatory and must be a valid bond name."
-        )
+        raise ValueError("ERR#0066: bond parameter is mandatory and must be a valid bond name.")
 
     if not isinstance(bond, str):
         raise ValueError("ERR#0067: bond argument needs to be a str.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     if order not in ["ascending", "asc", "descending", "desc"]:
-        raise ValueError(
-            "ERR#0003: order argument can just be ascending (asc) or descending (desc),"
-            " str type."
-        )
+        raise ValueError("ERR#0003: order argument can just be ascending (asc) or descending (desc)," " str type.")
 
     if not interval:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     if not isinstance(interval, str):
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     interval = interval.lower()
 
     if interval not in ["daily", "weekly", "monthly"]:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     resource_package = "investpy"
@@ -265,17 +257,11 @@ def get_bond_recent_data(bond, as_json=False, order="ascending", interval="Daily
     bond = unidecode(bond.strip().lower())
 
     if bond not in list(bonds["name"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0068: bond " + bond + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0068: bond " + bond + " not found, check if it is correct.")
 
     id_ = bonds.loc[(bonds["name"].apply(unidecode).str.lower() == bond).idxmax(), "id"]
-    name = bonds.loc[
-        (bonds["name"].apply(unidecode).str.lower() == bond).idxmax(), "name"
-    ]
-    full_name = bonds.loc[
-        (bonds["name"].apply(unidecode).str.lower() == bond).idxmax(), "full_name"
-    ]
+    name = bonds.loc[(bonds["name"].apply(unidecode).str.lower() == bond).idxmax(), "name"]
+    full_name = bonds.loc[(bonds["name"].apply(unidecode).str.lower() == bond).idxmax(), "full_name"]
 
     header = full_name + " Bond Yield Historical Data"
 
@@ -299,12 +285,10 @@ def get_bond_recent_data(bond, as_json=False, order="ascending", interval="Daily
 
     url = "https://www.investing.com/instruments/HistoricalDataAjax"
 
-    req = requests.post(url, headers=head, data=params)
+    req = scraper.post(url, headers=head, data=params)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root_ = fromstring(req.text)
     path_ = root_.xpath(".//table[@id='curr_table']/tbody/tr")
@@ -322,9 +306,7 @@ def get_bond_recent_data(bond, as_json=False, order="ascending", interval="Daily
                 info.append(nested_.get("data-real-value"))
 
             bond_date = datetime.strptime(
-                str(
-                    datetime.fromtimestamp(int(info[0]), tz=pytz.timezone("GMT")).date()
-                ),
+                str(datetime.fromtimestamp(int(info[0]), tz=pytz.timezone("GMT")).date()),
                 "%Y-%m-%d",
             )
 
@@ -365,9 +347,7 @@ def get_bond_recent_data(bond, as_json=False, order="ascending", interval="Daily
         raise RuntimeError("ERR#0004: data retrieval error while scraping.")
 
 
-def get_bond_historical_data(
-    bond, from_date, to_date, as_json=False, order="ascending", interval="Daily"
-):
+def get_bond_historical_data(bond, from_date, to_date, as_json=False, order="ascending", interval="Daily"):
     """
     This function retrieves historical data from the introduced bond from Investing.com. So on, the historical data
     of the introduced bond in the specified date range will be retrieved and returned as a :obj:`pandas.DataFrame` if
@@ -435,66 +415,49 @@ def get_bond_historical_data(
     """
 
     if not bond:
-        raise ValueError(
-            "ERR#0066: bond parameter is mandatory and must be a valid bond name."
-        )
+        raise ValueError("ERR#0066: bond parameter is mandatory and must be a valid bond name.")
 
     if not isinstance(bond, str):
         raise ValueError("ERR#0067: bond argument needs to be a str.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     if order not in ["ascending", "asc", "descending", "desc"]:
-        raise ValueError(
-            "ERR#0003: order argument can just be ascending (asc) or descending (desc),"
-            " str type."
-        )
+        raise ValueError("ERR#0003: order argument can just be ascending (asc) or descending (desc)," " str type.")
 
     if not interval:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     if not isinstance(interval, str):
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     interval = interval.lower()
 
     if interval not in ["daily", "weekly", "monthly"]:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     try:
         datetime.strptime(from_date, "%d/%m/%Y")
     except ValueError:
-        raise ValueError(
-            "ERR#0011: incorrect from_date date format, it should be 'dd/mm/yyyy'."
-        )
+        raise ValueError("ERR#0011: incorrect from_date date format, it should be 'dd/mm/yyyy'.")
 
     try:
         datetime.strptime(to_date, "%d/%m/%Y")
     except ValueError:
-        raise ValueError(
-            "ERR#0012: incorrect to_date format, it should be 'dd/mm/yyyy'."
-        )
+        raise ValueError("ERR#0012: incorrect to_date format, it should be 'dd/mm/yyyy'.")
 
     start_date = datetime.strptime(from_date, "%d/%m/%Y")
     end_date = datetime.strptime(to_date, "%d/%m/%Y")
 
     if start_date >= end_date:
-        raise ValueError(
-            "ERR#0032: to_date should be greater than from_date, both formatted as"
-            " 'dd/mm/yyyy'."
-        )
+        raise ValueError("ERR#0032: to_date should be greater than from_date, both formatted as" " 'dd/mm/yyyy'.")
 
     date_interval = {
         "intervals": [],
@@ -508,16 +471,12 @@ def get_bond_historical_data(
         if diff > 19:
             obj = {
                 "start": start_date.strftime("%m/%d/%Y"),
-                "end": start_date.replace(year=start_date.year + 19).strftime(
-                    "%m/%d/%Y"
-                ),
+                "end": start_date.replace(year=start_date.year + 19).strftime("%m/%d/%Y"),
             }
 
             date_interval["intervals"].append(obj)
 
-            start_date = start_date.replace(year=start_date.year + 19) + timedelta(
-                days=1
-            )
+            start_date = start_date.replace(year=start_date.year + 19) + timedelta(days=1)
         else:
             obj = {
                 "start": start_date.strftime("%m/%d/%Y"),
@@ -549,17 +508,11 @@ def get_bond_historical_data(
     bond = unidecode(bond.strip().lower())
 
     if bond not in list(bonds["name"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0068: bond " + bond + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0068: bond " + bond + " not found, check if it is correct.")
 
     id_ = bonds.loc[(bonds["name"].apply(unidecode).str.lower() == bond).idxmax(), "id"]
-    name = bonds.loc[
-        (bonds["name"].apply(unidecode).str.lower() == bond).idxmax(), "name"
-    ]
-    full_name = bonds.loc[
-        (bonds["name"].apply(unidecode).str.lower() == bond).idxmax(), "full_name"
-    ]
+    name = bonds.loc[(bonds["name"].apply(unidecode).str.lower() == bond).idxmax(), "name"]
+    full_name = bonds.loc[(bonds["name"].apply(unidecode).str.lower() == bond).idxmax(), "full_name"]
 
     final = list()
 
@@ -590,12 +543,10 @@ def get_bond_historical_data(
 
         url = "https://www.investing.com/instruments/HistoricalDataAjax"
 
-        req = requests.post(url, headers=head, data=params)
+        req = scraper.post(url, headers=head, data=params)
 
         if req.status_code != 200:
-            raise ConnectionError(
-                "ERR#0015: error " + str(req.status_code) + ", try again later."
-            )
+            raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
         if not req.text:
             continue
@@ -611,9 +562,7 @@ def get_bond_historical_data(
                     if interval_counter < interval_limit:
                         data_flag = False
                     else:
-                        raise IndexError(
-                            "ERR#0069: bond information unavailable or not found."
-                        )
+                        raise IndexError("ERR#0069: bond information unavailable or not found.")
                 else:
                     data_flag = True
 
@@ -624,11 +573,7 @@ def get_bond_historical_data(
                         info.append(nested_.get("data-real-value"))
 
                     bond_date = datetime.strptime(
-                        str(
-                            datetime.fromtimestamp(
-                                int(info[0]), tz=pytz.timezone("GMT")
-                            ).date()
-                        ),
+                        str(datetime.fromtimestamp(int(info[0]), tz=pytz.timezone("GMT")).date()),
                         "%Y-%m-%d",
                     )
 
@@ -662,9 +607,7 @@ def get_bond_historical_data(
 
                     final.append(json_list)
                 elif as_json is False:
-                    df = pd.DataFrame.from_records(
-                        [value.bond_to_dict() for value in result]
-                    )
+                    df = pd.DataFrame.from_records([value.bond_to_dict() for value in result])
                     df.set_index("Date", inplace=True)
 
                     final.append(df)
@@ -726,17 +669,13 @@ def get_bond_information(bond, as_json=False):
     """
 
     if not bond:
-        raise ValueError(
-            "ERR#0066: bond parameter is mandatory and must be a valid bond name."
-        )
+        raise ValueError("ERR#0066: bond parameter is mandatory and must be a valid bond name.")
 
     if not isinstance(bond, str):
         raise ValueError("ERR#0067: bond argument needs to be a str.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     resource_package = "investpy"
     resource_path = "/".join(("resources", "bonds.csv"))
@@ -754,16 +693,10 @@ def get_bond_information(bond, as_json=False):
     bond = unidecode(bond.strip().lower())
 
     if bond not in list(bonds["name"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0068: bond " + bond + " not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0068: bond " + bond + " not found, check if it is correct.")
 
-    name = bonds.loc[
-        (bonds["name"].apply(unidecode).str.lower() == bond).idxmax(), "name"
-    ]
-    tag = bonds.loc[
-        (bonds["name"].apply(unidecode).str.lower() == bond).idxmax(), "tag"
-    ]
+    name = bonds.loc[(bonds["name"].apply(unidecode).str.lower() == bond).idxmax(), "name"]
+    tag = bonds.loc[(bonds["name"].apply(unidecode).str.lower() == bond).idxmax(), "tag"]
 
     url = "https://www.investing.com/rates-bonds/" + tag
 
@@ -775,12 +708,10 @@ def get_bond_information(bond, as_json=False):
         "Connection": "keep-alive",
     }
 
-    req = requests.get(url, headers=head)
+    req = scraper.get(url, headers=head)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root_ = fromstring(req.text)
     path_ = root_.xpath("//div[contains(@class, 'overviewDataTable')]/div")
@@ -809,17 +740,13 @@ def get_bond_information(bond, as_json=False):
                 title_ = "Todays Range"
             if title_ in result.columns.tolist():
                 try:
-                    result.at[0, title_] = float(
-                        element.getnext().text_content().replace(",", "")
-                    )
+                    result.at[0, title_] = float(element.getnext().text_content().replace(",", ""))
                     continue
                 except:
                     pass
                 try:
                     text = element.getnext().text_content().strip()
-                    result.at[0, title_] = datetime.strptime(text, "%d %b %Y").strftime(
-                        "%d/%m/%Y"
-                    )
+                    result.at[0, title_] = datetime.strptime(text, "%d %b %Y").strftime("%d/%m/%Y")
                     continue
                 except:
                     pass
@@ -917,9 +844,7 @@ def get_bonds_overview(country, as_json=False):
         raise ValueError("ERR#0025: specified country value not valid.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     resource_package = "investpy"
     resource_path = "/".join(("resources", "bonds.csv"))
@@ -937,9 +862,7 @@ def get_bonds_overview(country, as_json=False):
     country = unidecode(country.strip().lower())
 
     if country not in get_bond_countries():
-        raise ValueError(
-            "ERR#0034: country " + country + " not found, check if it is correct."
-        )
+        raise ValueError("ERR#0034: country " + country + " not found, check if it is correct.")
 
     bonds = bonds[bonds["country"] == country]
 
@@ -958,12 +881,10 @@ def get_bonds_overview(country, as_json=False):
 
     url = "https://www.investing.com/rates-bonds/" + country + "-government-bonds"
 
-    req = requests.get(url, headers=head)
+    req = scraper.get(url, headers=head)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root_ = fromstring(req.text)
     table = root_.xpath(".//table[@id='cr1']/tbody/tr")
@@ -973,29 +894,19 @@ def get_bonds_overview(country, as_json=False):
     if len(table) > 0:
         for row in table:
             id_ = row.get("id").replace("pair_", "")
-            country_check = (
-                row.xpath(".//td[@class='flag']/span")[0].get("title").lower()
-            )
+            country_check = row.xpath(".//td[@class='flag']/span")[0].get("title").lower()
 
-            name = (
-                row.xpath(".//td[contains(@class, 'elp')]/a")[0].text_content().strip()
-            )
+            name = row.xpath(".//td[contains(@class, 'elp')]/a")[0].text_content().strip()
 
             pid = "pid-" + id_
 
             last = row.xpath(".//td[@class='" + pid + "-last']")[0].text_content()
-            last_close = row.xpath(".//td[@class='" + pid + "-last_close']")[
-                0
-            ].text_content()
+            last_close = row.xpath(".//td[@class='" + pid + "-last_close']")[0].text_content()
             high = row.xpath(".//td[@class='" + pid + "-high']")[0].text_content()
             low = row.xpath(".//td[@class='" + pid + "-low']")[0].text_content()
 
-            pc = row.xpath(".//td[contains(@class, '" + pid + "-pc')]")[
-                0
-            ].text_content()
-            pcp = row.xpath(".//td[contains(@class, '" + pid + "-pcp')]")[
-                0
-            ].text_content()
+            pc = row.xpath(".//td[contains(@class, '" + pid + "-pc')]")[0].text_content()
+            pcp = row.xpath(".//td[contains(@class, '" + pid + "-pcp')]")[0].text_content()
 
             data = {
                 "country": country_check,
@@ -1010,9 +921,7 @@ def get_bonds_overview(country, as_json=False):
 
             results.append(data)
     else:
-        raise RuntimeError(
-            "ERR#0092: no data found while retrieving the overview from Investing.com"
-        )
+        raise RuntimeError("ERR#0092: no data found while retrieving the overview from Investing.com")
 
     df = pd.DataFrame(results)
 
@@ -1048,24 +957,16 @@ def search_bonds(by, value):
     """
 
     if not by:
-        raise ValueError(
-            "ERR#0006: the introduced field to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0006: the introduced field to search is mandatory and should be a str.")
 
     if not isinstance(by, str):
-        raise ValueError(
-            "ERR#0006: the introduced field to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0006: the introduced field to search is mandatory and should be a str.")
 
     if not value:
-        raise ValueError(
-            "ERR#0017: the introduced value to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0017: the introduced value to search is mandatory and should be a str.")
 
     if not isinstance(value, str):
-        raise ValueError(
-            "ERR#0017: the introduced value to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0017: the introduced value to search is mandatory and should be a str.")
 
     resource_package = "investpy"
     resource_path = "/".join(("resources", "bonds.csv"))
@@ -1086,8 +987,7 @@ def search_bonds(by, value):
 
     if isinstance(by, str) and by not in available_search_fields:
         raise ValueError(
-            "ERR#0026: the introduced field to search can either just be "
-            + " or ".join(available_search_fields)
+            "ERR#0026: the introduced field to search can either just be " + " or ".join(available_search_fields)
         )
 
     bonds["matches"] = bonds[by].str.contains(value, case=False)
@@ -1095,9 +995,7 @@ def search_bonds(by, value):
     search_result = bonds.loc[bonds["matches"] == True].copy()
 
     if len(search_result) == 0:
-        raise RuntimeError(
-            "ERR#0043: no results were found for the introduced " + str(by) + "."
-        )
+        raise RuntimeError("ERR#0043: no results were found for the introduced " + str(by) + ".")
 
     search_result.drop(columns=["matches"], inplace=True)
     search_result.reset_index(drop=True, inplace=True)

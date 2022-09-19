@@ -1,14 +1,15 @@
 # Copyright 2018-2021 Alvaro Bartolome, alvarobartt @ GitHub
 # See LICENSE for details.
 
+import cloudscraper
 import pandas as pd
-import pkg_resources
-import requests
 from lxml.html import fromstring
 from unidecode import unidecode
 
 from .utils import constant as cst
 from .utils.extra import random_user_agent, resource_to_data
+
+scraper = cloudscraper.create_scraper()
 
 
 def technical_indicators(name, country, product_type, interval="daily"):
@@ -68,29 +69,19 @@ def technical_indicators(name, country, product_type, interval="daily"):
     """
 
     if not name:
-        raise ValueError(
-            "ERR#0116: the parameter name must be specified and must be a string."
-        )
+        raise ValueError("ERR#0116: the parameter name must be specified and must be a string.")
 
     if not isinstance(name, str):
-        raise ValueError(
-            "ERR#0116: the parameter name must be specified and must be a string."
-        )
+        raise ValueError("ERR#0116: the parameter name must be specified and must be a string.")
 
     if country is not None and not isinstance(country, str):
-        raise ValueError(
-            "ERR#0117: this parameter can just be None or a string, if required."
-        )
+        raise ValueError("ERR#0117: this parameter can just be None or a string, if required.")
 
     if not product_type:
-        raise ValueError(
-            "ERR#0118: product_type value is mandatory and must be a string."
-        )
+        raise ValueError("ERR#0118: product_type value is mandatory and must be a string.")
 
     if not isinstance(product_type, str):
-        raise ValueError(
-            "ERR#0118: product_type value is mandatory and must be a string."
-        )
+        raise ValueError("ERR#0118: product_type value is mandatory and must be a string.")
 
     if not interval:
         raise ValueError("ERR#0121: interval value is mandatory and must be a string.")
@@ -120,17 +111,12 @@ def technical_indicators(name, country, product_type, interval="daily"):
             country = unidecode(country.lower().strip())
 
             if country not in list(set(data["country"].str.lower())):
-                raise ValueError(
-                    "ERR#0124: introduced country does not exist or is not available."
-                )
+                raise ValueError("ERR#0124: introduced country does not exist or is not available.")
 
             data = data[data["country"] == country]
         else:
             if product_type != "commodity":
-                raise ValueError(
-                    "ERR#0123: country parameter is required with the introduced"
-                    " product_type."
-                )
+                raise ValueError("ERR#0123: country parameter is required with the introduced" " product_type.")
 
     if product_type == "stock":
         check = "symbol"
@@ -140,14 +126,9 @@ def technical_indicators(name, country, product_type, interval="daily"):
     name = unidecode(name.lower().strip())
 
     if name not in list(data[check].apply(unidecode).str.lower()):
-        raise ValueError(
-            "ERR#0122: introduced name does not exist in the introduced country (if"
-            " required)."
-        )
+        raise ValueError("ERR#0122: introduced name does not exist in the introduced country (if" " required).")
 
-    product_id = data.loc[
-        (data[check].apply(unidecode).str.lower() == name).idxmax(), "id"
-    ]
+    product_id = data.loc[(data[check].apply(unidecode).str.lower() == name).idxmax(), "id"]
 
     data_values = {
         "pairID": product_id,
@@ -165,12 +146,10 @@ def technical_indicators(name, country, product_type, interval="daily"):
 
     url = "https://www.investing.com/instruments/Service/GetTechincalData"
 
-    req = requests.post(url, headers=headers, data=data_values)
+    req = scraper.post(url, headers=headers, data=data_values)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root = fromstring(req.text)
     table = root.xpath(".//table[contains(@class, 'technicalIndicatorsTbl')]/tbody/tr")
@@ -248,29 +227,19 @@ def moving_averages(name, country, product_type, interval="daily"):
     """
 
     if not name:
-        raise ValueError(
-            "ERR#0116: the parameter name must be specified and must be a string."
-        )
+        raise ValueError("ERR#0116: the parameter name must be specified and must be a string.")
 
     if not isinstance(name, str):
-        raise ValueError(
-            "ERR#0116: the parameter name must be specified and must be a string."
-        )
+        raise ValueError("ERR#0116: the parameter name must be specified and must be a string.")
 
     if country is not None and not isinstance(country, str):
-        raise ValueError(
-            "ERR#0117: this parameter can just be None or a string, if required."
-        )
+        raise ValueError("ERR#0117: this parameter can just be None or a string, if required.")
 
     if not product_type:
-        raise ValueError(
-            "ERR#0118: product_type value is mandatory and must be a string."
-        )
+        raise ValueError("ERR#0118: product_type value is mandatory and must be a string.")
 
     if not isinstance(product_type, str):
-        raise ValueError(
-            "ERR#0118: product_type value is mandatory and must be a string."
-        )
+        raise ValueError("ERR#0118: product_type value is mandatory and must be a string.")
 
     if not interval:
         raise ValueError("ERR#0121: interval value is mandatory and must be a string.")
@@ -300,17 +269,12 @@ def moving_averages(name, country, product_type, interval="daily"):
             country = unidecode(country.lower().strip())
 
             if country not in list(set(data["country"].str.lower())):
-                raise ValueError(
-                    "ERR#0124: introduced country does not exist or is not available."
-                )
+                raise ValueError("ERR#0124: introduced country does not exist or is not available.")
 
             data = data[data["country"] == country]
         else:
             if product_type != "commodity":
-                raise ValueError(
-                    "ERR#0123: country parameter is required with the introduced"
-                    " product_type."
-                )
+                raise ValueError("ERR#0123: country parameter is required with the introduced" " product_type.")
 
     if product_type == "stock":
         check = "symbol"
@@ -320,14 +284,9 @@ def moving_averages(name, country, product_type, interval="daily"):
     name = unidecode(name.lower().strip())
 
     if name not in list(data[check].apply(unidecode).str.lower()):
-        raise ValueError(
-            "ERR#0122: introduced name does not exist in the introduced country (if"
-            " required)."
-        )
+        raise ValueError("ERR#0122: introduced name does not exist in the introduced country (if" " required).")
 
-    product_id = data.loc[
-        (data[check].apply(unidecode).str.lower() == name).idxmax(), "id"
-    ]
+    product_id = data.loc[(data[check].apply(unidecode).str.lower() == name).idxmax(), "id"]
 
     data_values = {
         "pairID": product_id,
@@ -345,12 +304,10 @@ def moving_averages(name, country, product_type, interval="daily"):
 
     url = "https://www.investing.com/instruments/Service/GetTechincalData"
 
-    req = requests.post(url, headers=headers, data=data_values)
+    req = scraper.post(url, headers=headers, data=data_values)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root = fromstring(req.text)
     table = root.xpath(".//table[contains(@class, 'movingAvgsTbl')]/tbody/tr")
@@ -362,31 +319,11 @@ def moving_averages(name, country, product_type, interval="daily"):
             if value.get("class") is not None:
                 if value.get("class").__contains__("symbol"):
                     ma_period = value.text_content().strip().replace("MA", "")
-                    sma_signal = (
-                        value.getnext().xpath("span")[0].text_content().strip().lower()
-                    )
-                    sma_value = float(
-                        value.getnext()
-                        .text_content()
-                        .lower()
-                        .replace(sma_signal, "")
-                        .strip()
-                    )
+                    sma_signal = value.getnext().xpath("span")[0].text_content().strip().lower()
+                    sma_value = float(value.getnext().text_content().lower().replace(sma_signal, "").strip())
                     value = value.getnext()
-                    ema_signal = (
-                        value.getnext()
-                        .xpath(".//span")[0]
-                        .text_content()
-                        .strip()
-                        .lower()
-                    )
-                    ema_value = float(
-                        value.getnext()
-                        .text_content()
-                        .lower()
-                        .replace(ema_signal, "")
-                        .strip()
-                    )
+                    ema_signal = value.getnext().xpath(".//span")[0].text_content().strip().lower()
+                    ema_value = float(value.getnext().text_content().lower().replace(ema_signal, "").strip())
 
                     moving_avgs.append(
                         {
@@ -452,29 +389,19 @@ def pivot_points(name, country, product_type, interval="daily"):
     """
 
     if not name:
-        raise ValueError(
-            "ERR#0116: the parameter name must be specified and must be a string."
-        )
+        raise ValueError("ERR#0116: the parameter name must be specified and must be a string.")
 
     if not isinstance(name, str):
-        raise ValueError(
-            "ERR#0116: the parameter name must be specified and must be a string."
-        )
+        raise ValueError("ERR#0116: the parameter name must be specified and must be a string.")
 
     if country is not None and not isinstance(country, str):
-        raise ValueError(
-            "ERR#0117: this parameter can just be None or a string, if required."
-        )
+        raise ValueError("ERR#0117: this parameter can just be None or a string, if required.")
 
     if not product_type:
-        raise ValueError(
-            "ERR#0118: product_type value is mandatory and must be a string."
-        )
+        raise ValueError("ERR#0118: product_type value is mandatory and must be a string.")
 
     if not isinstance(product_type, str):
-        raise ValueError(
-            "ERR#0118: product_type value is mandatory and must be a string."
-        )
+        raise ValueError("ERR#0118: product_type value is mandatory and must be a string.")
 
     if not interval:
         raise ValueError("ERR#0121: interval value is mandatory and must be a string.")
@@ -504,17 +431,12 @@ def pivot_points(name, country, product_type, interval="daily"):
             country = unidecode(country.lower().strip())
 
             if country not in list(set(data["country"].str.lower())):
-                raise ValueError(
-                    "ERR#0124: introduced country does not exist or is not available."
-                )
+                raise ValueError("ERR#0124: introduced country does not exist or is not available.")
 
             data = data[data["country"] == country]
         else:
             if product_type != "commodity":
-                raise ValueError(
-                    "ERR#0123: country parameter is required with the introduced"
-                    " product_type."
-                )
+                raise ValueError("ERR#0123: country parameter is required with the introduced" " product_type.")
 
     if product_type == "stock":
         check = "symbol"
@@ -524,14 +446,9 @@ def pivot_points(name, country, product_type, interval="daily"):
     name = unidecode(name.lower().strip())
 
     if name not in list(data[check].apply(unidecode).str.lower()):
-        raise ValueError(
-            "ERR#0122: introduced name does not exist in the introduced country (if"
-            " required)."
-        )
+        raise ValueError("ERR#0122: introduced name does not exist in the introduced country (if" " required).")
 
-    product_id = data.loc[
-        (data[check].apply(unidecode).str.lower() == name).idxmax(), "id"
-    ]
+    product_id = data.loc[(data[check].apply(unidecode).str.lower() == name).idxmax(), "id"]
 
     data_values = {
         "pairID": product_id,
@@ -549,12 +466,10 @@ def pivot_points(name, country, product_type, interval="daily"):
 
     url = "https://www.investing.com/instruments/Service/GetTechincalData"
 
-    req = requests.post(url, headers=headers, data=data_values)
+    req = scraper.post(url, headers=headers, data=data_values)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root = fromstring(req.text)
     header = root.xpath(".//table[contains(@class, 'crossRatesTbl')]/thead/tr/th")

@@ -2,19 +2,21 @@
 # See LICENSE for details.
 
 import json
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from random import randint
 
+import cloudscraper
 import pandas as pd
 import pkg_resources
 import pytz
-import requests
 from lxml.html import fromstring
 from unidecode import unidecode
 
 from .data.crypto_data import cryptos_as_df, cryptos_as_dict, cryptos_as_list
 from .utils.data import Data
 from .utils.extra import random_user_agent
+
+scraper = cloudscraper.create_scraper()
 
 
 def get_cryptos():
@@ -180,42 +182,32 @@ def get_crypto_recent_data(crypto, as_json=False, order="ascending", interval="D
     """
 
     if not crypto:
-        raise ValueError(
-            "ERR#0083: crypto parameter is mandatory and must be a valid crypto name."
-        )
+        raise ValueError("ERR#0083: crypto parameter is mandatory and must be a valid crypto name.")
 
     if not isinstance(crypto, str):
         raise ValueError("ERR#0084: crypto argument needs to be a str.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     if order not in ["ascending", "asc", "descending", "desc"]:
-        raise ValueError(
-            "ERR#0003: order argument can just be ascending (asc) or descending (desc),"
-            " str type."
-        )
+        raise ValueError("ERR#0003: order argument can just be ascending (asc) or descending (desc)," " str type.")
 
     if not interval:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     if not isinstance(interval, str):
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     interval = interval.lower()
 
     if interval not in ["daily", "weekly", "monthly"]:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     resource_package = "investpy"
@@ -234,30 +226,15 @@ def get_crypto_recent_data(crypto, as_json=False, order="ascending", interval="D
     crypto = unidecode(crypto.strip().lower())
 
     if crypto not in list(cryptos["name"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0085: crypto currency: "
-            + crypto
-            + ", not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0085: crypto currency: " + crypto + ", not found, check if it is correct.")
 
-    status = cryptos.loc[
-        (cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "status"
-    ]
+    status = cryptos.loc[(cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "status"]
     if status == "unavailable":
-        raise ValueError(
-            "ERR#0086: the selected crypto currency is not available for retrieval in"
-            " Investing.com."
-        )
+        raise ValueError("ERR#0086: the selected crypto currency is not available for retrieval in" " Investing.com.")
 
-    crypto_name = cryptos.loc[
-        (cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "name"
-    ]
-    crypto_id = cryptos.loc[
-        (cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "id"
-    ]
-    crypto_currency = cryptos.loc[
-        (cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "currency"
-    ]
+    crypto_name = cryptos.loc[(cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "name"]
+    crypto_id = cryptos.loc[(cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "id"]
+    crypto_currency = cryptos.loc[(cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "currency"]
 
     header = crypto_name + " Historical Data"
 
@@ -281,12 +258,10 @@ def get_crypto_recent_data(crypto, as_json=False, order="ascending", interval="D
 
     url = "https://www.investing.com/instruments/HistoricalDataAjax"
 
-    req = requests.post(url, headers=head, data=params)
+    req = scraper.post(url, headers=head, data=params)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root_ = fromstring(req.text)
     path_ = root_.xpath(".//table[@id='curr_table']/tbody/tr")
@@ -295,9 +270,7 @@ def get_crypto_recent_data(crypto, as_json=False, order="ascending", interval="D
     if path_:
         for elements_ in path_:
             if elements_.xpath(".//td")[0].text_content() == "No results found":
-                raise IndexError(
-                    "ERR#0087: crypto information unavailable or not found."
-                )
+                raise IndexError("ERR#0087: crypto information unavailable or not found.")
 
             info = []
 
@@ -305,9 +278,7 @@ def get_crypto_recent_data(crypto, as_json=False, order="ascending", interval="D
                 info.append(nested_.get("data-real-value"))
 
             crypto_date = datetime.strptime(
-                str(
-                    datetime.fromtimestamp(int(info[0]), tz=pytz.timezone("GMT")).date()
-                ),
+                str(datetime.fromtimestamp(int(info[0]), tz=pytz.timezone("GMT")).date()),
                 "%Y-%m-%d",
             )
 
@@ -353,9 +324,7 @@ def get_crypto_recent_data(crypto, as_json=False, order="ascending", interval="D
         raise RuntimeError("ERR#0004: data retrieval error while scraping.")
 
 
-def get_crypto_historical_data(
-    crypto, from_date, to_date, as_json=False, order="ascending", interval="Daily"
-):
+def get_crypto_historical_data(crypto, from_date, to_date, as_json=False, order="ascending", interval="Daily"):
     """
     This function retrieves historical data from the introduced crypto from Investing.com. So on, the historical data
     of the introduced crypto will be retrieved and returned as a :obj:`pandas.DataFrame` if the parameters are valid
@@ -424,66 +393,49 @@ def get_crypto_historical_data(
     """
 
     if not crypto:
-        raise ValueError(
-            "ERR#0083: crypto parameter is mandatory and must be a valid crypto name."
-        )
+        raise ValueError("ERR#0083: crypto parameter is mandatory and must be a valid crypto name.")
 
     if not isinstance(crypto, str):
         raise ValueError("ERR#0084: crypto argument needs to be a str.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     if order not in ["ascending", "asc", "descending", "desc"]:
-        raise ValueError(
-            "ERR#0003: order argument can just be ascending (asc) or descending (desc),"
-            " str type."
-        )
+        raise ValueError("ERR#0003: order argument can just be ascending (asc) or descending (desc)," " str type.")
 
     if not interval:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     if not isinstance(interval, str):
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     interval = interval.lower()
 
     if interval not in ["daily", "weekly", "monthly"]:
         raise ValueError(
-            "ERR#0073: interval value should be a str type and it can just be either"
-            " 'Daily', 'Weekly' or 'Monthly'."
+            "ERR#0073: interval value should be a str type and it can just be either" " 'Daily', 'Weekly' or 'Monthly'."
         )
 
     try:
         datetime.strptime(from_date, "%d/%m/%Y")
     except ValueError:
-        raise ValueError(
-            "ERR#0011: incorrect from_date date format, it should be 'dd/mm/yyyy'."
-        )
+        raise ValueError("ERR#0011: incorrect from_date date format, it should be 'dd/mm/yyyy'.")
 
     try:
         datetime.strptime(to_date, "%d/%m/%Y")
     except ValueError:
-        raise ValueError(
-            "ERR#0012: incorrect to_date format, it should be 'dd/mm/yyyy'."
-        )
+        raise ValueError("ERR#0012: incorrect to_date format, it should be 'dd/mm/yyyy'.")
 
     start_date = datetime.strptime(from_date, "%d/%m/%Y")
     end_date = datetime.strptime(to_date, "%d/%m/%Y")
 
     if start_date >= end_date:
-        raise ValueError(
-            "ERR#0032: to_date should be greater than from_date, both formatted as"
-            " 'dd/mm/yyyy'."
-        )
+        raise ValueError("ERR#0032: to_date should be greater than from_date, both formatted as" " 'dd/mm/yyyy'.")
 
     date_interval = {
         "intervals": [],
@@ -497,16 +449,12 @@ def get_crypto_historical_data(
         if diff > 19:
             obj = {
                 "start": start_date.strftime("%m/%d/%Y"),
-                "end": start_date.replace(year=start_date.year + 19).strftime(
-                    "%m/%d/%Y"
-                ),
+                "end": start_date.replace(year=start_date.year + 19).strftime("%m/%d/%Y"),
             }
 
             date_interval["intervals"].append(obj)
 
-            start_date = start_date.replace(year=start_date.year + 19) + timedelta(
-                days=1
-            )
+            start_date = start_date.replace(year=start_date.year + 19) + timedelta(days=1)
         else:
             obj = {
                 "start": start_date.strftime("%m/%d/%Y"),
@@ -538,30 +486,15 @@ def get_crypto_historical_data(
     crypto = unidecode(crypto.strip().lower())
 
     if crypto not in list(cryptos["name"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0085: crypto currency: "
-            + crypto
-            + ", not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0085: crypto currency: " + crypto + ", not found, check if it is correct.")
 
-    status = cryptos.loc[
-        (cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "status"
-    ]
+    status = cryptos.loc[(cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "status"]
     if status == "unavailable":
-        raise ValueError(
-            "ERR#0086: the selected crypto currency is not available for retrieval in"
-            " Investing.com."
-        )
+        raise ValueError("ERR#0086: the selected crypto currency is not available for retrieval in" " Investing.com.")
 
-    crypto_name = cryptos.loc[
-        (cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "name"
-    ]
-    crypto_id = cryptos.loc[
-        (cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "id"
-    ]
-    crypto_currency = cryptos.loc[
-        (cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "currency"
-    ]
+    crypto_name = cryptos.loc[(cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "name"]
+    crypto_id = cryptos.loc[(cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "id"]
+    crypto_currency = cryptos.loc[(cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "currency"]
 
     header = crypto_name + " Historical Data"
 
@@ -592,12 +525,10 @@ def get_crypto_historical_data(
 
         url = "https://www.investing.com/instruments/HistoricalDataAjax"
 
-        req = requests.post(url, headers=head, data=params)
+        req = scraper.post(url, headers=head, data=params)
 
         if req.status_code != 200:
-            raise ConnectionError(
-                "ERR#0015: error " + str(req.status_code) + ", try again later."
-            )
+            raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
         if not req.text:
             continue
@@ -613,9 +544,7 @@ def get_crypto_historical_data(
                     if interval_counter < interval_limit:
                         data_flag = False
                     else:
-                        raise IndexError(
-                            "ERR#0087: crypto information unavailable or not found."
-                        )
+                        raise IndexError("ERR#0087: crypto information unavailable or not found.")
                 else:
                     data_flag = True
 
@@ -626,11 +555,7 @@ def get_crypto_historical_data(
 
                 if data_flag is True:
                     crypto_date = datetime.strptime(
-                        str(
-                            datetime.fromtimestamp(
-                                int(info[0]), tz=pytz.timezone("GMT")
-                            ).date()
-                        ),
+                        str(datetime.fromtimestamp(int(info[0]), tz=pytz.timezone("GMT")).date()),
                         "%Y-%m-%d",
                     )
 
@@ -666,9 +591,7 @@ def get_crypto_historical_data(
 
                     final.append(json_list)
                 elif as_json is False:
-                    df = pd.DataFrame.from_records(
-                        [value.crypto_to_dict() for value in result]
-                    )
+                    df = pd.DataFrame.from_records([value.crypto_to_dict() for value in result])
                     df.set_index("Date", inplace=True)
 
                     final.append(df)
@@ -728,17 +651,13 @@ def get_crypto_information(crypto, as_json=False):
     """
 
     if not crypto:
-        raise ValueError(
-            "ERR#0083: crypto parameter is mandatory and must be a valid crypto name."
-        )
+        raise ValueError("ERR#0083: crypto parameter is mandatory and must be a valid crypto name.")
 
     if not isinstance(crypto, str):
         raise ValueError("ERR#0084: crypto argument needs to be a str.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     resource_package = "investpy"
     resource_path = "/".join(("resources", "cryptos.csv"))
@@ -756,30 +675,15 @@ def get_crypto_information(crypto, as_json=False):
     crypto = unidecode(crypto.strip().lower())
 
     if crypto not in list(cryptos["name"].apply(unidecode).str.lower()):
-        raise RuntimeError(
-            "ERR#0085: crypto currency: "
-            + crypto
-            + ", not found, check if it is correct."
-        )
+        raise RuntimeError("ERR#0085: crypto currency: " + crypto + ", not found, check if it is correct.")
 
-    status = cryptos.loc[
-        (cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "status"
-    ]
+    status = cryptos.loc[(cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "status"]
     if status == "unavailable":
-        raise ValueError(
-            "ERR#0086: the selected crypto currency is not available for retrieval in"
-            " Investing.com."
-        )
+        raise ValueError("ERR#0086: the selected crypto currency is not available for retrieval in" " Investing.com.")
 
-    name = cryptos.loc[
-        (cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "name"
-    ]
-    currency = cryptos.loc[
-        (cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "currency"
-    ]
-    tag = cryptos.loc[
-        (cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "tag"
-    ]
+    name = cryptos.loc[(cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "name"]
+    currency = cryptos.loc[(cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "currency"]
+    tag = cryptos.loc[(cryptos["name"].apply(unidecode).str.lower() == crypto).idxmax(), "tag"]
 
     url = "https://www.investing.com/crypto/" + tag
 
@@ -791,12 +695,10 @@ def get_crypto_information(crypto, as_json=False):
         "Connection": "keep-alive",
     }
 
-    req = requests.get(url, headers=head)
+    req = scraper.get(url, headers=head)
 
     if req.status_code != 200:
-        raise ConnectionError(
-            "ERR#0015: error " + str(req.status_code) + ", try again later."
-        )
+        raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
 
     root_ = fromstring(req.text)
     path_ = root_.xpath("//div[@class='cryptoGlobalData']/div")
@@ -875,20 +777,14 @@ def get_cryptos_overview(as_json=False, n_results=100):
     """
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     if n_results is not None and not isinstance(n_results, int):
-        raise ValueError(
-            "ERR#0089: n_results argument should be an integer between 1 and 1000."
-        )
+        raise ValueError("ERR#0089: n_results argument should be an integer between 1 and 1000.")
 
     if n_results is not None:
         if 1 > n_results or n_results > 1000:
-            raise ValueError(
-                "ERR#0089: n_results argument should be an integer between 1 and 1000."
-            )
+            raise ValueError("ERR#0089: n_results argument should be an integer between 1 and 1000.")
 
     header = {
         "User-Agent": random_user_agent(),
@@ -900,7 +796,7 @@ def get_cryptos_overview(as_json=False, n_results=100):
 
     url = "https://www.investing.com/crypto/currencies"
 
-    req = requests.get(url, headers=header)
+    req = scraper.get(url, headers=header)
 
     root = fromstring(req.text)
     table = root.xpath(".//table[contains(@class, 'allCryptoTlb')]/tbody/tr")
@@ -910,18 +806,14 @@ def get_cryptos_overview(as_json=False, n_results=100):
     flag = False
 
     if len(table) < 1:
-        raise RuntimeError(
-            "ERR#0092: no data found while retrieving the overview from Investing.com"
-        )
+        raise RuntimeError("ERR#0092: no data found while retrieving the overview from Investing.com")
 
     if n_results is not None and n_results <= 100:
         table = table[:n_results]
         flag = True
 
     for row in table:
-        name = (
-            row.xpath(".//td[contains(@class, 'cryptoName')]")[0].text_content().strip()
-        )
+        name = row.xpath(".//td[contains(@class, 'cryptoName')]")[0].text_content().strip()
         symbol = row.xpath(".//td[contains(@class, 'symb')]")[0].get("title").strip()
 
         # Due to Investing.com parsing error
@@ -941,12 +833,8 @@ def get_cryptos_overview(as_json=False, n_results=100):
         volume24h = row.xpath(".//td[@class='js-24h-volume']")[0].get("data-value")
         total_volume = row.xpath(".//td[@class='js-total-vol']")[0].text_content()
 
-        change24h = row.xpath(".//td[contains(@class, 'js-currency-change-24h')]")[
-            0
-        ].text_content()
-        change7d = row.xpath(".//td[contains(@class, 'js-currency-change-7d')]")[
-            0
-        ].text_content()
+        change24h = row.xpath(".//td[contains(@class, 'js-currency-change-24h')]")[0].text_content()
+        change7d = row.xpath(".//td[contains(@class, 'js-currency-change-7d')]")[0].text_content()
 
         data = {
             "name": name,
@@ -983,7 +871,7 @@ def get_cryptos_overview(as_json=False, n_results=100):
 
         url = "https://www.investing.com/crypto/Service/LoadCryptoCurrencies"
 
-        req = requests.post(url=url, headers=header, data=params)
+        req = scraper.post(url=url, headers=header, data=params)
 
         root = fromstring(req.json()["html"])
         table = root.xpath(".//tr")
@@ -993,20 +881,11 @@ def get_cryptos_overview(as_json=False, n_results=100):
             table = table[:remaining_cryptos]
 
         if len(table) < 1:
-            raise RuntimeError(
-                "ERR#0092: no data found while retrieving the overview from"
-                " Investing.com"
-            )
+            raise RuntimeError("ERR#0092: no data found while retrieving the overview from" " Investing.com")
 
         for row in table:
-            name = (
-                row.xpath(".//td[contains(@class, 'cryptoName')]")[0]
-                .text_content()
-                .strip()
-            )
-            symbol = (
-                row.xpath(".//td[contains(@class, 'symb')]")[0].get("title").strip()
-            )
+            name = row.xpath(".//td[contains(@class, 'cryptoName')]")[0].text_content().strip()
+            symbol = row.xpath(".//td[contains(@class, 'symb')]")[0].get("title").strip()
 
             # Due to Investing.com parsing error
             if symbol in ["GRV", "GLYPH"]:
@@ -1025,12 +904,8 @@ def get_cryptos_overview(as_json=False, n_results=100):
             volume24h = row.xpath(".//td[@class='js-24h-volume']")[0].get("data-value")
             total_volume = row.xpath(".//td[@class='js-total-vol']")[0].text_content()
 
-            change24h = row.xpath(".//td[contains(@class, 'js-currency-change-24h')]")[
-                0
-            ].text_content()
-            change7d = row.xpath(".//td[contains(@class, 'js-currency-change-7d')]")[
-                0
-            ].text_content()
+            change24h = row.xpath(".//td[contains(@class, 'js-currency-change-24h')]")[0].text_content()
+            change7d = row.xpath(".//td[contains(@class, 'js-currency-change-7d')]")[0].text_content()
 
             data = {
                 "name": name,
@@ -1081,24 +956,16 @@ def search_cryptos(by, value):
     """
 
     if not by:
-        raise ValueError(
-            "ERR#0006: the introduced field to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0006: the introduced field to search is mandatory and should be a str.")
 
     if not isinstance(by, str):
-        raise ValueError(
-            "ERR#0006: the introduced field to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0006: the introduced field to search is mandatory and should be a str.")
 
     if not value:
-        raise ValueError(
-            "ERR#0017: the introduced value to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0017: the introduced value to search is mandatory and should be a str.")
 
     if not isinstance(value, str):
-        raise ValueError(
-            "ERR#0017: the introduced value to search is mandatory and should be a str."
-        )
+        raise ValueError("ERR#0017: the introduced value to search is mandatory and should be a str.")
 
     resource_package = "investpy"
     resource_path = "/".join(("resources", "cryptos.csv"))
@@ -1119,8 +986,7 @@ def search_cryptos(by, value):
 
     if isinstance(by, str) and by not in available_search_fields:
         raise ValueError(
-            "ERR#0026: the introduced field to search can either just be "
-            + " or ".join(available_search_fields)
+            "ERR#0026: the introduced field to search can either just be " + " or ".join(available_search_fields)
         )
 
     cryptos["matches"] = cryptos[by].str.contains(value, case=False)
@@ -1128,9 +994,7 @@ def search_cryptos(by, value):
     search_result = cryptos.loc[cryptos["matches"] == True].copy()
 
     if len(search_result) == 0:
-        raise RuntimeError(
-            "ERR#0043: no results were found for the introduced " + str(by) + "."
-        )
+        raise RuntimeError("ERR#0043: no results were found for the introduced " + str(by) + ".")
 
     search_result.drop(columns=["matches"], inplace=True)
     search_result.reset_index(drop=True, inplace=True)

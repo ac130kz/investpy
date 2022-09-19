@@ -1,12 +1,14 @@
 # Copyright 2018-2021 Alvaro Bartolome, alvarobartt @ GitHub
 # See LICENSE for details.
 
-import requests
+import cloudscraper
 from unidecode import unidecode
 
 from .utils.constant import COUNTRY_FILTERS, FLAG_FILTERS, PAIR_FILTERS, PRODUCT_FILTERS
 from .utils.extra import random_user_agent
 from .utils.search_obj import SearchObj
+
+scraper = cloudscraper.create_scraper()
 
 
 def search_quotes(text, products=None, countries=None, n_results=None):
@@ -53,25 +55,19 @@ def search_quotes(text, products=None, countries=None, n_results=None):
     """
 
     if not text:
-        raise ValueError(
-            "ERR#0074: text parameter is mandatory and it should be a valid str."
-        )
+        raise ValueError("ERR#0074: text parameter is mandatory and it should be a valid str.")
 
     if not isinstance(text, str):
-        raise ValueError(
-            "ERR#0074: text parameter is mandatory and it should be a valid str."
-        )
+        raise ValueError("ERR#0074: text parameter is mandatory and it should be a valid str.")
 
     if products and not isinstance(products, list):
         raise ValueError(
-            "ERR#0094: products filtering parameter is optional, but if specified, it"
-            " must be a list of str."
+            "ERR#0094: products filtering parameter is optional, but if specified, it" " must be a list of str."
         )
 
     if countries and not isinstance(countries, list):
         raise ValueError(
-            "ERR#0128: countries filtering parameter is optional, but if specified, it"
-            " must be a list of str."
+            "ERR#0128: countries filtering parameter is optional, but if specified, it" " must be a list of str."
         )
 
     if n_results and not isinstance(n_results, int):
@@ -89,14 +85,9 @@ def search_quotes(text, products=None, countries=None, n_results=None):
 
     if products:
         try:
-            products = list(
-                map(lambda product: unidecode(product.lower().strip()), products)
-            )
+            products = list(map(lambda product: unidecode(product.lower().strip()), products))
         except:
-            raise ValueError(
-                "ERR#0130: the introduced products filter must be a list of str in"
-                " order to be valid."
-            )
+            raise ValueError("ERR#0130: the introduced products filter must be a list of str in" " order to be valid.")
 
         condition = set(products).issubset(PRODUCT_FILTERS.keys())
         if condition is False:
@@ -110,14 +101,9 @@ def search_quotes(text, products=None, countries=None, n_results=None):
 
     if countries:
         try:
-            countries = list(
-                map(lambda country: unidecode(country.lower().strip()), countries)
-            )
+            countries = list(map(lambda country: unidecode(country.lower().strip()), countries))
         except:
-            raise ValueError(
-                "ERR#0131: the introduced countries filter must be a list of str in"
-                " order to be valid."
-            )
+            raise ValueError("ERR#0131: the introduced countries filter must be a list of str in" " order to be valid.")
 
         condition = set(countries).issubset(COUNTRY_FILTERS.keys())
         if condition is False:
@@ -154,19 +140,15 @@ def search_quotes(text, products=None, countries=None, n_results=None):
     user_limit = True if n_results is not None else False
 
     while True:
-        req = requests.post(url, headers=headers, data=params)
+        req = scraper.post(url, headers=headers, data=params)
 
         if req.status_code != 200:
-            raise ConnectionError(
-                f"ERR#0015: error {req.status_code}, try again later."
-            )
+            raise ConnectionError(f"ERR#0015: error {req.status_code}, try again later.")
 
         data = req.json()
 
         if data["total"]["quotes"] == 0:
-            raise RuntimeError(
-                "ERR#0093: no results found on Investing.com for the introduced text."
-            )
+            raise RuntimeError("ERR#0093: no results found on Investing.com for the introduced text.")
 
         if total_results is None:
             total_results = data["total"]["quotes"]
@@ -189,11 +171,7 @@ def search_quotes(text, products=None, countries=None, n_results=None):
 
             country = None
             if pair_type not in ["cryptos", "commodities"]:
-                country = (
-                    FLAG_FILTERS[quote["flag"]]
-                    if quote["flag"] in FLAG_FILTERS
-                    else quote["flag"]
-                )
+                country = FLAG_FILTERS[quote["flag"]] if quote["flag"] in FLAG_FILTERS else quote["flag"]
 
             search_obj = SearchObj(
                 id_=quote["pairId"],
@@ -221,9 +199,7 @@ def search_quotes(text, products=None, countries=None, n_results=None):
             break
 
     if len(search_results) < 1:
-        raise RuntimeError(
-            "ERR#0093: no results found on Investing.com for the introduced query."
-        )
+        raise RuntimeError("ERR#0093: no results found on Investing.com for the introduced query.")
 
     return search_results[:n_results]
 
@@ -234,25 +210,19 @@ def search_events(text, importances=None, countries=None, n_results=None):
     """
 
     if not text:
-        raise ValueError(
-            "ERR#0074: text parameter is mandatory and it should be a valid str."
-        )
+        raise ValueError("ERR#0074: text parameter is mandatory and it should be a valid str.")
 
     if not isinstance(text, str):
-        raise ValueError(
-            "ERR#0074: text parameter is mandatory and it should be a valid str."
-        )
+        raise ValueError("ERR#0074: text parameter is mandatory and it should be a valid str.")
 
     if importances and not isinstance(importances, list):
         raise ValueError(
-            "ERR#0138: importances filtering parameter is optional, but if specified,"
-            " it must be a list of str."
+            "ERR#0138: importances filtering parameter is optional, but if specified," " it must be a list of str."
         )
 
     if countries and not isinstance(countries, list):
         raise ValueError(
-            "ERR#0128: countries filtering parameter is optional, but if specified, it"
-            " must be a list of str."
+            "ERR#0128: countries filtering parameter is optional, but if specified, it" " must be a list of str."
         )
 
     if n_results and not isinstance(n_results, int):
@@ -285,19 +255,15 @@ def search_events(text, importances=None, countries=None, n_results=None):
     total_results = None
 
     while True:
-        response = requests.post(url, data=params, headers=headers)
+        response = scraper.post(url, data=params, headers=headers)
 
         if response.status_code != 200:
-            raise ConnectionError(
-                f"ERR#0015: error {response.status_code}, try again later."
-            )
+            raise ConnectionError(f"ERR#0015: error {response.status_code}, try again later.")
 
         events = response.json()["ec_events"]
 
         if len(events) == 0:
-            raise RuntimeError(
-                "ERR#0093: no results found on Investing.com for the introduced text."
-            )
+            raise RuntimeError("ERR#0093: no results found on Investing.com for the introduced text.")
 
         if total_results is None:
             total_results = data["total"]["quotes"]
@@ -346,8 +312,6 @@ def search_events(text, importances=None, countries=None, n_results=None):
             break
 
     if len(search_results) < 1:
-        raise RuntimeError(
-            "ERR#0093: no results found on Investing.com for the introduced query."
-        )
+        raise RuntimeError("ERR#0093: no results found on Investing.com for the introduced query.")
 
     return search_results[:n_results]

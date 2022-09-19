@@ -5,14 +5,16 @@ from datetime import datetime
 from random import choice
 from time import gmtime, localtime, strftime
 
+import cloudscraper
 import pandas as pd
 import pytz
-import requests
 from lxml.html import fromstring
 from unidecode import unidecode
 
 from .utils import constant as cst
 from .utils.extra import random_user_agent
+
+scraper = cloudscraper.create_scraper()
 
 
 def economic_calendar(
@@ -70,45 +72,34 @@ def economic_calendar(
     """
 
     if time_zone is not None and not isinstance(time_zone, str):
-        raise ValueError(
-            "ERR#0107: the introduced time_zone must be a string unless it is None."
-        )
+        raise ValueError("ERR#0107: the introduced time_zone must be a string unless it is None.")
 
     if time_zone is None:
         time_zone = "GMT"
 
-        diff = datetime.strptime(
-            strftime("%d/%m/%Y %H:%M", localtime()), "%d/%m/%Y %H:%M"
-        ) - datetime.strptime(strftime("%d/%m/%Y %H:%M", gmtime()), "%d/%m/%Y %H:%M")
+        diff = datetime.strptime(strftime("%d/%m/%Y %H:%M", localtime()), "%d/%m/%Y %H:%M") - datetime.strptime(
+            strftime("%d/%m/%Y %H:%M", gmtime()), "%d/%m/%Y %H:%M"
+        )
 
         hour_diff = int(diff.total_seconds() / 3600)
         min_diff = int(diff.total_seconds() % 3600) * 60
 
         if hour_diff != 0:
             time_zone = (
-                "GMT "
-                + ("+" if hour_diff > 0 else "")
-                + str(hour_diff)
-                + ":"
-                + ("00" if min_diff < 30 else "30")
+                "GMT " + ("+" if hour_diff > 0 else "") + str(hour_diff) + ":" + ("00" if min_diff < 30 else "30")
             )
     else:
         if time_zone not in cst.TIMEZONES.keys():
             raise ValueError(
-                "ERR#0108: the introduced time_zone does not exist, please consider"
-                " passing time_zone as None."
+                "ERR#0108: the introduced time_zone does not exist, please consider" " passing time_zone as None."
             )
 
     if not isinstance(time_filter, str):
-        raise ValueError(
-            "ERR#0109: the introduced time_filter is not valid since it must be a"
-            " string."
-        )
+        raise ValueError("ERR#0109: the introduced time_filter is not valid since it must be a" " string.")
 
     if time_filter not in cst.TIME_FILTERS.keys():
         raise ValueError(
-            "ERR#0110: the introduced time_filter does not exist, available ones are:"
-            " time_remaining and time_only."
+            "ERR#0110: the introduced time_filter does not exist, available ones are:" " time_remaining and time_only."
         )
 
     if countries is not None and not isinstance(countries, list):
@@ -130,14 +121,10 @@ def economic_calendar(
         )
 
     if from_date is not None and not isinstance(from_date, str):
-        raise ValueError(
-            "ERR#0114: the introduced date value must be a string unless it is None."
-        )
+        raise ValueError("ERR#0114: the introduced date value must be a string unless it is None.")
 
     if to_date is not None and not isinstance(to_date, str):
-        raise ValueError(
-            "ERR#0114: the introduced date value must be a string unless it is None."
-        )
+        raise ValueError("ERR#0114: the introduced date value must be a string unless it is None.")
 
     url = "https://www.investing.com/economic-calendar/Service/getCalendarFilteredData"
 
@@ -163,26 +150,19 @@ def economic_calendar(
         try:
             datetime.strptime(from_date, "%d/%m/%Y")
         except ValueError:
-            raise ValueError(
-                "ERR#0011: incorrect from_date date format, it should be 'dd/mm/yyyy'."
-            )
+            raise ValueError("ERR#0011: incorrect from_date date format, it should be 'dd/mm/yyyy'.")
 
         start_date = datetime.strptime(from_date, "%d/%m/%Y")
 
         try:
             datetime.strptime(to_date, "%d/%m/%Y")
         except ValueError:
-            raise ValueError(
-                "ERR#0012: incorrect to_date format, it should be 'dd/mm/yyyy'."
-            )
+            raise ValueError("ERR#0012: incorrect to_date format, it should be 'dd/mm/yyyy'.")
 
         end_date = datetime.strptime(to_date, "%d/%m/%Y")
 
         if start_date >= end_date:
-            raise ValueError(
-                "ERR#0032: to_date should be greater than from_date, both formatted as"
-                " 'dd/mm/yyyy'."
-            )
+            raise ValueError("ERR#0032: to_date should be greater than from_date, both formatted as" " 'dd/mm/yyyy'.")
 
         data = {
             "dateFrom": datetime.strptime(from_date, "%d/%m/%Y").strftime("%Y-%m-%d"),
@@ -246,7 +226,7 @@ def economic_calendar(
     results = list()
 
     while True:
-        req = requests.post(url, headers=headers, data=data)
+        req = scraper.post(url, headers=headers, data=data)
 
         root = fromstring(req.json()["data"])
         table = root.xpath(".//tr")
@@ -264,15 +244,11 @@ def economic_calendar(
             id_ = row.get("id")
             if id_ == None:
                 curr_timescope = int(row.xpath("td")[0].get("id").replace("theDay", ""))
-                curr_date = datetime.fromtimestamp(
-                    curr_timescope, tz=pytz.timezone("GMT")
-                ).strftime("%d/%m/%Y")
+                curr_date = datetime.fromtimestamp(curr_timescope, tz=pytz.timezone("GMT")).strftime("%d/%m/%Y")
             else:
                 id_ = id_.replace("eventRowId_", "")
 
-                time = (
-                    zone
-                ) = currency = sentiment = event = actual = forecast = previous = None
+                time = zone = currency = sentiment = event = actual = forecast = previous = None
 
                 if row.get("id").__contains__("eventRowId_"):
                     for value in row.xpath("td"):
@@ -285,9 +261,7 @@ def economic_calendar(
                             if value.get("data-img_key") == None:
                                 importance_rating = None
                             else:
-                                importance_rating = value.get("data-img_key").replace(
-                                    "bull", ""
-                                )
+                                importance_rating = value.get("data-img_key").replace("bull", "")
                         elif value.get("class") == "left event":
                             event = value.text_content().strip()
                         elif value.get("id") == "eventActual_" + id_:

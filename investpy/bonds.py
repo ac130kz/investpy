@@ -6,10 +6,10 @@ import re
 from datetime import datetime, timedelta
 from random import randint
 
-import cloudscraper
 import pandas as pd
 import pkg_resources
 import pytz
+import requests
 from lxml.html import fromstring
 from unidecode import unidecode
 
@@ -20,9 +20,7 @@ from .data.bonds_data import (
     bonds_as_list,
 )
 from .utils.data import Data
-from .utils.extra import random_user_agent
-
-scraper = cloudscraper.create_scraper()
+from .utils.extra import get_headers
 
 
 def get_bonds(country=None):
@@ -275,17 +273,9 @@ def get_bond_recent_data(bond, as_json=False, order="ascending", interval="Daily
         "action": "historical_data",
     }
 
-    head = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "text/html",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
-    }
-
     url = "https://www.investing.com/instruments/HistoricalDataAjax"
 
-    req = scraper.post(url, headers=head, data=params)
+    req = requests.post(url, headers=get_headers(), data=params)
 
     if req.status_code != 200:
         raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
@@ -534,7 +524,7 @@ def get_bond_historical_data(bond, from_date, to_date, as_json=False, order="asc
         }
 
         head = {
-            "User-Agent": random_user_agent(),
+            "User-Agent": get_headers(),
             "X-Requested-With": "XMLHttpRequest",
             "Accept": "text/html",
             "Accept-Encoding": "gzip, deflate",
@@ -543,7 +533,7 @@ def get_bond_historical_data(bond, from_date, to_date, as_json=False, order="asc
 
         url = "https://www.investing.com/instruments/HistoricalDataAjax"
 
-        req = scraper.post(url, headers=head, data=params)
+        req = requests.post(url, headers=get_headers(), data=params)
 
         if req.status_code != 200:
             raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
@@ -700,15 +690,7 @@ def get_bond_information(bond, as_json=False):
 
     url = "https://www.investing.com/rates-bonds/" + tag
 
-    head = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "text/html",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
-    }
-
-    req = scraper.get(url, headers=head)
+    req = requests.get(url, headers=get_headers())
 
     if req.status_code != 200:
         raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
@@ -871,17 +853,9 @@ def get_bonds_overview(country, as_json=False):
     elif country == "united kingdom":
         country = "uk"
 
-    head = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "text/html",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
-    }
-
     url = "https://www.investing.com/rates-bonds/" + country + "-government-bonds"
 
-    req = scraper.get(url, headers=head)
+    req = requests.get(url, headers=get_headers())
 
     if req.status_code != 200:
         raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")

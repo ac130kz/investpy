@@ -41,23 +41,27 @@ def resource_to_data(path_to_data):
     return data
 
 
-def random_user_agent():
-    """
-    This function selects a random User-Agent from the User-Agent list, which is a constant
-    variable that can be found at `investpy.utils.constant.USER_AGENTS`. User-Agents are used in
-    order to avoid the limitations of the requests to Investing.com. The User-Agent is
-    specified on the headers of the requests and is different for every request.
+# def get_headers():
+#     """
+#     This function selects a random User-Agent from the User-Agent list, which is a constant
+#     variable that can be found at `investpy.utils.constant.USER_AGENTS`. User-Agents are used in
+#     order to avoid the limitations of the requests to Investing.com. The User-Agent is
+#     specified on the headers of the requests and is different for every request.
 
-    Note that Investing.com, via changing the User-Agent on the headers of every request, allows
-    a lot of requests, since it has been tested with over 10k consecutive requests without getting
-    any HTTP error code from Investing.com.
+#     Note that Investing.com, via changing the User-Agent on the headers of every request, allows
+#     a lot of requests, since it has been tested with over 10k consecutive requests without getting
+#     any HTTP error code from Investing.com.
 
-    Returns:
-        :obj:`str` - user_agent:
-            The returned :obj:`str` is the name of a random User-Agent, which will be passed on the
-            headers of a request so to avoid restrictions due to the use of multiple requests from the
-            same User-Agent.
+#     Returns:
+#         :obj:`str` - user_agent:
+#             The returned :obj:`str` is the name of a random User-Agent, which will be passed on the
+#             headers of a request so to avoid restrictions due to the use of multiple requests from the
+#             same User-Agent.
 
-    """
+#     """
 
-    return random.choice(cst.USER_AGENTS)
+#     return random.choice(cst.USER_AGENTS)
+
+
+def get_headers() -> dict:
+    return

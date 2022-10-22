@@ -5,16 +5,14 @@ from datetime import datetime
 from random import choice
 from time import gmtime, localtime, strftime
 
-import cloudscraper
 import pandas as pd
 import pytz
+import requests
 from lxml.html import fromstring
 from unidecode import unidecode
 
 from .utils import constant as cst
-from .utils.extra import random_user_agent
-
-scraper = cloudscraper.create_scraper()
+from .utils.extra import get_headers
 
 
 def economic_calendar(
@@ -128,14 +126,6 @@ def economic_calendar(
 
     url = "https://www.investing.com/economic-calendar/Service/getCalendarFilteredData"
 
-    headers = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "text/html",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
-    }
-
     dates = [from_date, to_date]
 
     if any(date is None for date in dates) is True:
@@ -226,7 +216,7 @@ def economic_calendar(
     results = list()
 
     while True:
-        req = scraper.post(url, headers=headers, data=data)
+        req = requests.post(url, headers=get_headers(), data=data)
 
         root = fromstring(req.json()["data"])
         table = root.xpath(".//tr")

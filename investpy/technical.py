@@ -1,15 +1,13 @@
 # Copyright 2018-2021 Alvaro Bartolome, alvarobartt @ GitHub
 # See LICENSE for details.
 
-import cloudscraper
 import pandas as pd
+import requests
 from lxml.html import fromstring
 from unidecode import unidecode
 
 from .utils import constant as cst
-from .utils.extra import random_user_agent, resource_to_data
-
-scraper = cloudscraper.create_scraper()
+from .utils.extra import get_headers, resource_to_data
 
 
 def technical_indicators(name, country, product_type, interval="daily"):
@@ -136,17 +134,9 @@ def technical_indicators(name, country, product_type, interval="daily"):
         "viewType": "normal",
     }
 
-    headers = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "text/html",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
-    }
-
     url = "https://www.investing.com/instruments/Service/GetTechincalData"
 
-    req = scraper.post(url, headers=headers, data=data_values)
+    req = requests.post(url, headers=get_headers(), data=data_values)
 
     if req.status_code != 200:
         raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
@@ -294,17 +284,9 @@ def moving_averages(name, country, product_type, interval="daily"):
         "viewType": "normal",
     }
 
-    headers = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "text/html",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
-    }
-
     url = "https://www.investing.com/instruments/Service/GetTechincalData"
 
-    req = scraper.post(url, headers=headers, data=data_values)
+    req = requests.post(url, headers=get_headers(), data=data_values)
 
     if req.status_code != 200:
         raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
@@ -456,17 +438,9 @@ def pivot_points(name, country, product_type, interval="daily"):
         "viewType": "normal",
     }
 
-    headers = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "text/html",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
-    }
-
     url = "https://www.investing.com/instruments/Service/GetTechincalData"
 
-    req = scraper.post(url, headers=headers, data=data_values)
+    req = requests.post(url, headers=get_headers(), data=data_values)
 
     if req.status_code != 200:
         raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")

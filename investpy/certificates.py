@@ -5,10 +5,10 @@ import json
 from datetime import datetime, timedelta
 from random import randint
 
-import cloudscraper
 import pandas as pd
 import pkg_resources
 import pytz
+import requests
 from lxml.html import fromstring
 from unidecode import unidecode
 
@@ -19,9 +19,7 @@ from .data.certificates_data import (
     certificates_as_list,
 )
 from .utils.data import Data
-from .utils.extra import random_user_agent
-
-scraper = cloudscraper.create_scraper()
+from .utils.extra import get_headers
 
 
 def get_certificates(country=None):
@@ -304,17 +302,9 @@ def get_certificate_recent_data(certificate, country, as_json=False, order="asce
         "action": "historical_data",
     }
 
-    head = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "text/html",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
-    }
-
     url = "https://www.investing.com/instruments/HistoricalDataAjax"
 
-    req = scraper.post(url, headers=head, data=params)
+    req = requests.post(url, headers=get_headers(), data=params)
 
     if req.status_code != 200:
         raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
@@ -597,7 +587,7 @@ def get_certificate_historical_data(
         }
 
         head = {
-            "User-Agent": random_user_agent(),
+            "User-Agent": get_headers(),
             "X-Requested-With": "XMLHttpRequest",
             "Accept": "text/html",
             "Accept-Encoding": "gzip, deflate",
@@ -606,7 +596,7 @@ def get_certificate_historical_data(
 
         url = "https://www.investing.com/instruments/HistoricalDataAjax"
 
-        req = scraper.post(url, headers=head, data=params)
+        req = requests.post(url, headers=get_headers(), data=params)
 
         if req.status_code != 200:
             raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
@@ -781,15 +771,7 @@ def get_certificate_information(certificate, country, as_json=False):
 
     url = "https://www.investing.com/certificates/" + tag
 
-    head = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "text/html",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
-    }
-
-    req = scraper.get(url, headers=head)
+    req = requests.get(url, headers=get_headers())
 
     if req.status_code != 200:
         raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
@@ -935,17 +917,9 @@ def get_certificates_overview(country, as_json=False, n_results=100):
 
     certificates = certificates[certificates["country"] == country]
 
-    head = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "text/html",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
-    }
-
     url = "https://www.investing.com/certificates/" + country.replace(" ", "-") + "-certificates"
 
-    req = scraper.get(url, headers=head)
+    req = requests.get(url, headers=get_headers())
 
     if req.status_code != 200:
         raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")

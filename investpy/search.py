@@ -1,14 +1,12 @@
 # Copyright 2018-2021 Alvaro Bartolome, alvarobartt @ GitHub
 # See LICENSE for details.
 
-import cloudscraper
+import requests
 from unidecode import unidecode
 
 from .utils.constant import COUNTRY_FILTERS, FLAG_FILTERS, PAIR_FILTERS, PRODUCT_FILTERS
-from .utils.extra import random_user_agent
+from .utils.extra import get_headers
 from .utils.search_obj import SearchObj
-
-scraper = cloudscraper.create_scraper()
 
 
 def search_quotes(text, products=None, countries=None, n_results=None):
@@ -123,14 +121,6 @@ def search_quotes(text, products=None, countries=None, n_results=None):
         "offset": 0,
     }
 
-    headers = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "text/html",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
-    }
-
     url = "https://www.investing.com/search/service/SearchInnerPage"
 
     search_results = list()
@@ -140,7 +130,7 @@ def search_quotes(text, products=None, countries=None, n_results=None):
     user_limit = True if n_results is not None else False
 
     while True:
-        req = scraper.post(url, headers=headers, data=params)
+        req = requests.post(url, headers=get_headers(), data=params)
 
         if req.status_code != 200:
             raise ConnectionError(f"ERR#0015: error {req.status_code}, try again later.")
@@ -240,14 +230,6 @@ def search_events(text, importances=None, countries=None, n_results=None):
 
     params = {"search_text": text, "tab": "ec_event", "limit": 270, "offset": 0}
 
-    headers = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "text/html",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
-    }
-
     url = "https://www.investing.com/search/service/SearchInnerPage"
 
     search_results = list()
@@ -255,7 +237,7 @@ def search_events(text, importances=None, countries=None, n_results=None):
     total_results = None
 
     while True:
-        response = scraper.post(url, data=params, headers=headers)
+        response = requests.post(url, data=params, headers=get_headers())
 
         if response.status_code != 200:
             raise ConnectionError(f"ERR#0015: error {response.status_code}, try again later.")

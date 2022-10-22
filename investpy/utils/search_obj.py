@@ -5,15 +5,13 @@ import json
 from datetime import datetime, timedelta
 from random import randint
 
-import cloudscraper
 import pandas as pd
 import pytz
+import requests
 from lxml.html import fromstring
 
 from .constant import FUNDS_INTERVAL_FILTERS, INTERVAL_FILTERS, OUTDATED2UPDATED
-from .extra import random_user_agent
-
-scraper = cloudscraper.create_scraper()
+from .extra import get_headers
 
 
 class SearchObj(object):
@@ -89,7 +87,7 @@ class SearchObj(object):
             header = f"{self.name} Historical Data"
             headers, params = self._prepare_request(header)
 
-        self.data = self._data_retrieval(product=self.pair_type, headers=headers, params=params)
+        self.data = self._data_retrieval(product=self.pair_type, headers=get_headers(), params=params)
         self._convert2df()
         return self.data
 
@@ -151,7 +149,7 @@ class SearchObj(object):
                     header=header, from_date=interval["from"], to_date=interval["to"]
                 )
                 try:
-                    self.data += self._data_retrieval(product=self.pair_type, headers=headers, params=params)
+                    self.data += self._data_retrieval(product=self.pair_type, headers=get_headers(), params=params)
                 except:
                     continue
 
@@ -163,7 +161,7 @@ class SearchObj(object):
                 from_date=from_date.strftime("%m/%d/%Y"),
                 to_date=to_date.strftime("%m/%d/%Y"),
             )
-            self.data = self._data_retrieval(product=self.pair_type, headers=headers, params=params)
+            self.data = self._data_retrieval(product=self.pair_type, headers=get_headers(), params=params)
 
         self._convert2df()
         return self.data
@@ -192,14 +190,14 @@ class SearchObj(object):
         url = f"https://www.investing.com{self.tag}"
 
         headers = {
-            "User-Agent": random_user_agent(),
+            "User-Agent": get_headers(),
             "X-Requested-With": "XMLHttpRequest",
             "Accept": "text/html",
             "Accept-Encoding": "gzip, deflate",
             "Connection": "keep-alive",
         }
 
-        req = scraper.get(url, headers=headers)
+        req = requests.get(url, headers=get_headers())
 
         if req.status_code != 200:
             raise ConnectionError(f"ERR#0015: error {req.status_code}, try again later.")
@@ -335,7 +333,7 @@ class SearchObj(object):
         }
 
         headers = {
-            "User-Agent": random_user_agent(),
+            "User-Agent": get_headers(),
             "X-Requested-With": "XMLHttpRequest",
             "Accept": "text/html",
             "Accept-Encoding": "gzip, deflate",
@@ -344,7 +342,7 @@ class SearchObj(object):
 
         url = "https://www.investing.com/instruments/Service/GetTechincalData"
 
-        req = scraper.post(url, headers=headers, data=params)
+        req = requests.post(url, headers=get_headers(), data=params)
 
         if req.status_code != 200:
             raise ConnectionError(f"ERR#0015: error {req.status_code}, try again later.")
@@ -393,14 +391,14 @@ class SearchObj(object):
         url = f"https://www.investing.com{self.tag}"
 
         headers = {
-            "User-Agent": random_user_agent(),
+            "User-Agent": get_headers(),
             "X-Requested-With": "XMLHttpRequest",
             "Accept": "text/html",
             "Accept-Encoding": "gzip, deflate",
             "Connection": "keep-alive",
         }
 
-        req = scraper.get(url, headers=headers)
+        req = requests.get(url, headers=get_headers())
 
         if req.status_code != 200:
             raise ConnectionError(f"ERR#0015: error {req.status_code}, try again later.")
@@ -435,7 +433,7 @@ class SearchObj(object):
 
     def _prepare_request(self, header):
         headers = {
-            "User-Agent": random_user_agent(),
+            "User-Agent": get_headers(),
             "X-Requested-With": "XMLHttpRequest",
             "Accept": "text/html",
             "Accept-Encoding": "gzip, deflate",
@@ -456,7 +454,7 @@ class SearchObj(object):
 
     def _prepare_historical_request(self, header, from_date, to_date):
         headers = {
-            "User-Agent": random_user_agent(),
+            "User-Agent": get_headers(),
             "X-Requested-With": "XMLHttpRequest",
             "Accept": "text/html",
             "Accept-Encoding": "gzip, deflate",
@@ -510,7 +508,7 @@ class SearchObj(object):
 
         url = "https://www.investing.com/instruments/HistoricalDataAjax"
 
-        req = scraper.post(url, headers=headers, data=params)
+        req = requests.post(url, headers=get_headers(), data=params)
 
         if req.status_code != 200:
             raise ConnectionError(f"ERR#0015: error {req.status_code}, try again later.")

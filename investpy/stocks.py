@@ -4,10 +4,10 @@
 import json
 from datetime import datetime
 
-import cloudscraper
 import pandas as pd
 import pkg_resources
 import pytz
+import requests
 from dateutil import relativedelta
 from lxml.html import fromstring
 from unidecode import unidecode
@@ -15,9 +15,7 @@ from unidecode import unidecode
 from .data.stocks_data import stocks_as_df, stocks_as_dict, stocks_as_list
 from .utils import constant as cst
 from .utils.data import Data
-from .utils.extra import random_user_agent
-
-scraper = cloudscraper.create_scraper()
+from .utils.extra import get_headers
 
 
 def get_stocks(country=None):
@@ -305,7 +303,7 @@ def get_stock_recent_data(stock, country, as_json=False, order="ascending", inte
 
     url = f"https://api.investing.com/api/financialdata/historical/{id_}"
 
-    req = scraper.get(url, params=params, headers=headers)
+    req = requests.get(url, params=params, headers=get_headers())
 
     if req.status_code != 200:
         raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
@@ -550,7 +548,7 @@ def get_stock_historical_data(
 
     url = f"https://api.investing.com/api/financialdata/historical/{id_}"
 
-    req = scraper.get(url, params=params, headers=headers)
+    req = requests.get(url, params=params, headers=get_headers())
 
     if req.status_code != 200:
         raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
@@ -725,14 +723,14 @@ def get_stock_company_profile(stock, country="spain", language="english"):
         company_profile["url"] = url
 
         head = {
-            "User-Agent": random_user_agent(),
+            "User-Agent": get_headers(),
             "X-Requested-With": "XMLHttpRequest",
             "Accept": "text/html",
             "Accept-Encoding": "gzip, deflate",
             "Connection": "keep-alive",
         }
 
-        req = scraper.get(url, headers=head)
+        req = requests.get(url, headers=get_headers())
 
         if req.status_code != 200:
             raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
@@ -761,14 +759,14 @@ def get_stock_company_profile(stock, country="spain", language="english"):
         company_profile["url"] = url
 
         head = {
-            "User-Agent": random_user_agent(),
+            "User-Agent": get_headers(),
             "X-Requested-With": "XMLHttpRequest",
             "Accept": "text/html",
             "Accept-Encoding": "gzip, deflate",
             "Connection": "keep-alive",
         }
 
-        req = scraper.get(url, headers=head)
+        req = requests.get(url, headers=get_headers())
 
         if req.status_code != 200:
             raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
@@ -849,17 +847,9 @@ def get_stock_dividends(stock, country):
 
     tag_ = stocks.loc[(stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "tag"]
 
-    headers = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "text/html",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
-    }
-
     url = "https://www.investing.com/equities/" + str(tag_) + "-dividends"
 
-    req = scraper.get(url=url, headers=headers)
+    req = requests.get(url=url, headers=get_headers())
 
     if req.status_code != 200:
         raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
@@ -922,7 +912,7 @@ def get_stock_dividends(stock, country):
 
             while flag is True:
                 headers = {
-                    "User-Agent": random_user_agent(),
+                    "User-Agent": get_headers(),
                     "X-Requested-With": "XMLHttpRequest",
                     "Accept": "text/html",
                     "Accept-Encoding": "gzip, deflate",
@@ -936,7 +926,7 @@ def get_stock_dividends(stock, country):
 
                 url = "https://www.investing.com/equities/MoreDividendsHistory"
 
-                req = scraper.post(url=url, headers=headers, params=params)
+                req = requests.post(url=url, headers=get_headers(), params=params)
 
                 if req.status_code != 200:
                     raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
@@ -1089,15 +1079,7 @@ def get_stock_information(stock, country, as_json=False):
 
     url = f"https://www.investing.com/equities/{tag}"
 
-    headers = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "text/html",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
-    }
-
-    req = scraper.get(url, headers=headers)
+    req = requests.get(url, headers=get_headers())
 
     if req.status_code != 200:
         raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
@@ -1238,14 +1220,6 @@ def get_stocks_overview(country, as_json=False, n_results=100):
 
     stocks = stocks[stocks["country"] == country]
 
-    head = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "text/html",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
-    }
-
     params = {
         "noconstruct": "1",
         "smlID": cst.STOCK_COUNTRIES[country],
@@ -1256,7 +1230,7 @@ def get_stocks_overview(country, as_json=False, n_results=100):
 
     url = "https://www.investing.com/equities/StocksFilter"
 
-    req = scraper.get(url, params=params, headers=head)
+    req = requests.get(url, params=params, headers=get_headers())
 
     if req.status_code != 200:
         raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")
@@ -1438,14 +1412,6 @@ def get_stock_financial_summary(stock, country, summary_type="income_statement",
 
     id_ = stocks.loc[(stocks["symbol"].apply(unidecode).str.lower() == stock).idxmax(), "id"]
 
-    headers = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "text/html",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
-    }
-
     params = {
         "action": "change_report_type",
         "pid": id_,
@@ -1456,7 +1422,7 @@ def get_stock_financial_summary(stock, country, summary_type="income_statement",
 
     url = "https://www.investing.com/instruments/Financials/changesummaryreporttypeajax"
 
-    req = scraper.get(url, params=params, headers=headers)
+    req = requests.get(url, params=params, headers=get_headers())
 
     if req.status_code != 200:
         raise ConnectionError("ERR#0015: error " + str(req.status_code) + ", try again later.")

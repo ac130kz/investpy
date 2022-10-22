@@ -853,7 +853,7 @@ def get_cryptos_overview(as_json=False, n_results=100):
 
         url = "https://www.investing.com/crypto/Service/LoadCryptoCurrencies"
 
-        req = requests.post(url=url, headers=get_headers()er, data=params)
+        req = requests.post(url=url, headers=get_headers(), data=params)
 
         root = fromstring(req.json()["html"])
         table = root.xpath(".//tr")

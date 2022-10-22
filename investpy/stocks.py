@@ -287,12 +287,20 @@ def get_stock_recent_data(stock, country, as_json=False, order="ascending", inte
     }
 
     headers = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Domain-Id": "www",
-        "Accept": "application/json",
-        "Accept-Encoding": "gzip, deflate",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Language": "en-US,en;q=0.5",
         "Connection": "keep-alive",
+        "DNT": "1",
+        "domain-id": "www",
+        "Host": "api.investing.com",
+        "Origin": "https://www.investing.com",
+        "Referer": "https://www.investing.com/",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site",
+        "TE": "trailers",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:106.0) Gecko/20100101 Firefox/106.0",
     }
 
     url = f"https://api.investing.com/api/financialdata/historical/{id_}"
@@ -524,12 +532,20 @@ def get_stock_historical_data(
     }
 
     headers = {
-        "User-Agent": random_user_agent(),
-        "X-Requested-With": "XMLHttpRequest",
-        "Domain-Id": "www",
-        "Accept": "application/json",
-        "Accept-Encoding": "gzip, deflate",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Language": "en-US,en;q=0.5",
         "Connection": "keep-alive",
+        "DNT": "1",
+        "domain-id": "www",
+        "Host": "api.investing.com",
+        "Origin": "https://www.investing.com",
+        "Referer": "https://www.investing.com/",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site",
+        "TE": "trailers",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:106.0) Gecko/20100101 Firefox/106.0",
     }
 
     url = f"https://api.investing.com/api/financialdata/historical/{id_}"

@@ -1,7 +1,7 @@
 # Copyright 2018-2021 Alvaro Bartolome, alvarobartt @ GitHub
 # See LICENSE for details.
 
-import json
+import orjson as json
 
 import pandas as pd
 import pkg_resources
@@ -138,9 +138,7 @@ def cryptos_as_dict(columns=None, as_json=False):
     """
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     resource_package = "investpy"
     resource_path = "/".join(("resources", "cryptos.csv"))
@@ -163,15 +161,11 @@ def cryptos_as_dict(columns=None, as_json=False):
         columns = cryptos.columns.tolist()
     else:
         if not isinstance(columns, list):
-            raise ValueError(
-                "ERR#0020: specified columns argument is not a list, it can just be"
-                " list type."
-            )
+            raise ValueError("ERR#0020: specified columns argument is not a list, it can just be" " list type.")
 
     if not all(column in cryptos.columns.tolist() for column in columns):
         raise ValueError(
-            "ERR#0021: specified columns does not exist, available columns are "
-            "<name, symbol, currency>"
+            "ERR#0021: specified columns does not exist, available columns are " "<name, symbol, currency>"
         )
 
     if as_json:

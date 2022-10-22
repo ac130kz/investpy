@@ -1,7 +1,7 @@
 # Copyright 2018-2021 Alvaro Bartolome, alvarobartt @ GitHub
 # See LICENSE for details.
 
-import json
+import orjson as json
 
 import pandas as pd
 import pkg_resources
@@ -66,9 +66,7 @@ def stocks_as_df(country=None):
         country = unidecode(country.strip().lower())
 
         if country not in stock_countries_as_list():
-            raise ValueError(
-                "ERR#0034: country " + country + " not found, check if it is correct."
-            )
+            raise ValueError("ERR#0034: country " + country + " not found, check if it is correct.")
 
         stocks = stocks[stocks["country"] == country]
         stocks.reset_index(drop=True, inplace=True)
@@ -130,9 +128,7 @@ def stocks_as_list(country=None):
         country = unidecode(country.strip().lower())
 
         if country not in stock_countries_as_list():
-            raise ValueError(
-                "ERR#0034: country " + country + " not found, check if it is correct."
-            )
+            raise ValueError("ERR#0034: country " + country + " not found, check if it is correct.")
 
         return stocks[stocks["country"] == country]["symbol"].tolist()
 
@@ -179,9 +175,7 @@ def stocks_as_dict(country=None, columns=None, as_json=False):
         raise ValueError("ERR#0025: specified country value not valid.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     resource_package = "investpy"
     resource_path = "/".join((("resources", "stocks.csv")))
@@ -203,10 +197,7 @@ def stocks_as_dict(country=None, columns=None, as_json=False):
         columns = stocks.columns.tolist()
     else:
         if not isinstance(columns, list):
-            raise ValueError(
-                "ERR#0020: specified columns argument is not a list, it can just be"
-                " list type."
-            )
+            raise ValueError("ERR#0020: specified columns argument is not a list, it can just be" " list type.")
 
     if not all(column in stocks.columns.tolist() for column in columns):
         raise ValueError(
@@ -223,18 +214,12 @@ def stocks_as_dict(country=None, columns=None, as_json=False):
         country = unidecode(country.strip().lower())
 
         if country not in stock_countries_as_list():
-            raise ValueError(
-                "ERR#0034: country " + country + " not found, check if it is correct."
-            )
+            raise ValueError("ERR#0034: country " + country + " not found, check if it is correct.")
 
         if as_json:
-            return json.dumps(
-                stocks[stocks["country"] == country][columns].to_dict(orient="records")
-            )
+            return json.dumps(stocks[stocks["country"] == country][columns].to_dict(orient="records"))
         else:
-            return stocks[stocks["country"] == country][columns].to_dict(
-                orient="records"
-            )
+            return stocks[stocks["country"] == country][columns].to_dict(orient="records")
 
 
 def stock_countries_as_list():

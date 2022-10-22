@@ -1,7 +1,7 @@
 # Copyright 2018-2021 Alvaro Bartolome, alvarobartt @ GitHub
 # See LICENSE for details.
 
-import json
+import orjson as json
 
 import pandas as pd
 import pkg_resources
@@ -65,9 +65,7 @@ def bonds_as_df(country=None):
         country = unidecode(country.strip().lower())
 
         if country not in bond_countries_as_list():
-            raise ValueError(
-                "ERR#0034: country " + country + " not found, check if it is correct."
-            )
+            raise ValueError("ERR#0034: country " + country + " not found, check if it is correct.")
 
         bonds = bonds[bonds["country"] == country]
         bonds.reset_index(drop=True, inplace=True)
@@ -129,9 +127,7 @@ def bonds_as_list(country=None):
         country = unidecode(country.strip().lower())
 
         if country not in bond_countries_as_list():
-            raise ValueError(
-                "ERR#0034: country " + country + " not found, check if it is correct."
-            )
+            raise ValueError("ERR#0034: country " + country + " not found, check if it is correct.")
 
         return bonds[bonds["country"] == country]["name"].tolist()
 
@@ -175,9 +171,7 @@ def bonds_as_dict(country=None, columns=None, as_json=False):
         raise ValueError("ERR#0025: specified country value not valid.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     resource_package = "investpy"
     resource_path = "/".join(("resources", "bonds.csv"))
@@ -199,15 +193,11 @@ def bonds_as_dict(country=None, columns=None, as_json=False):
         columns = bonds.columns.tolist()
     else:
         if not isinstance(columns, list):
-            raise ValueError(
-                "ERR#0020: specified columns argument is not a list, it can just be"
-                " list type."
-            )
+            raise ValueError("ERR#0020: specified columns argument is not a list, it can just be" " list type.")
 
     if not all(column in bonds.columns.tolist() for column in columns):
         raise ValueError(
-            "ERR#0063: specified columns does not exist, available columns are "
-            "<country, name, full_name>"
+            "ERR#0063: specified columns does not exist, available columns are " "<country, name, full_name>"
         )
 
     if country is None:
@@ -219,14 +209,10 @@ def bonds_as_dict(country=None, columns=None, as_json=False):
         country = unidecode(country.strip().lower())
 
         if country not in bond_countries_as_list():
-            raise ValueError(
-                "ERR#0034: country " + country + " not found, check if it is correct."
-            )
+            raise ValueError("ERR#0034: country " + country + " not found, check if it is correct.")
 
         if as_json:
-            return json.dumps(
-                bonds[bonds["country"] == country][columns].to_dict(orient="records")
-            )
+            return json.dumps(bonds[bonds["country"] == country][columns].to_dict(orient="records"))
         else:
             return bonds[bonds["country"] == country][columns].to_dict(orient="records")
 

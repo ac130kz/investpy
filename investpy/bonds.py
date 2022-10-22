@@ -1,11 +1,11 @@
 # Copyright 2018-2021 Alvaro Bartolome, alvarobartt @ GitHub
 # See LICENSE for details.
 
-import json
 import re
 from datetime import datetime, timedelta
 from random import randint
 
+import orjson as json
 import pandas as pd
 import pkg_resources
 import pytz

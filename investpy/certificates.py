@@ -1,7 +1,7 @@
 # Copyright 2018-2021 Alvaro Bartolome, alvarobartt @ GitHub
 # See LICENSE for details.
 
-import json
+import orjson as json
 from datetime import datetime, timedelta
 from random import randint
 

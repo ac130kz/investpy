@@ -1,7 +1,7 @@
 # Copyright 2018-2021 Alvaro Bartolome, alvarobartt @ GitHub
 # See LICENSE for details.
 
-import json
+import orjson as json
 
 import pandas as pd
 import pkg_resources
@@ -65,9 +65,7 @@ def indices_as_df(country=None):
         country = unidecode(country.strip().lower())
 
         if country not in index_countries_as_list():
-            raise ValueError(
-                "ERR#0034: country " + country + " not found, check if it is correct."
-            )
+            raise ValueError("ERR#0034: country " + country + " not found, check if it is correct.")
 
         indices = indices[indices["country"] == country]
         indices.reset_index(drop=True, inplace=True)
@@ -127,9 +125,7 @@ def indices_as_list(country=None):
         country = unidecode(country.strip().lower())
 
         if country not in index_countries_as_list():
-            raise ValueError(
-                "ERR#0034: country " + country + " not found, check if it is correct."
-            )
+            raise ValueError("ERR#0034: country " + country + " not found, check if it is correct.")
 
         return indices[indices["country"] == country]["name"].tolist()
 
@@ -178,9 +174,7 @@ def indices_as_dict(country=None, columns=None, as_json=False):
         raise ValueError("ERR#0025: specified country value not valid.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     resource_package = "investpy"
     resource_path = "/".join(("resources", "indices.csv"))
@@ -202,10 +196,7 @@ def indices_as_dict(country=None, columns=None, as_json=False):
         columns = indices.columns.tolist()
     else:
         if not isinstance(columns, list):
-            raise ValueError(
-                "ERR#0020: specified columns argument is not a list, it can just be"
-                " list type."
-            )
+            raise ValueError("ERR#0020: specified columns argument is not a list, it can just be" " list type.")
 
     if not all(column in indices.columns.tolist() for column in columns):
         raise ValueError(
@@ -222,20 +213,12 @@ def indices_as_dict(country=None, columns=None, as_json=False):
         country = unidecode(country.strip().lower())
 
         if country not in index_countries_as_list():
-            raise ValueError(
-                "ERR#0034: country " + country + " not found, check if it is correct."
-            )
+            raise ValueError("ERR#0034: country " + country + " not found, check if it is correct.")
 
         if as_json:
-            return json.dumps(
-                indices[indices["country"] == country][columns].to_dict(
-                    orient="records"
-                )
-            )
+            return json.dumps(indices[indices["country"] == country][columns].to_dict(orient="records"))
         else:
-            return indices[indices["country"] == country][columns].to_dict(
-                orient="records"
-            )
+            return indices[indices["country"] == country][columns].to_dict(orient="records")
 
 
 def index_countries_as_list():

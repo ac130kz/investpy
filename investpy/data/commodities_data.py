@@ -1,7 +1,7 @@
 # Copyright 2018-2021 Alvaro Bartolome, alvarobartt @ GitHub
 # See LICENSE for details.
 
-import json
+import orjson as json
 
 import pandas as pd
 import pkg_resources
@@ -67,9 +67,7 @@ def commodities_as_df(group=None):
         group = unidecode(group.strip().lower())
 
         if group not in commodity_groups_list():
-            raise ValueError(
-                "ERR#0077: introduced group does not exists or is not a valid one."
-            )
+            raise ValueError("ERR#0077: introduced group does not exists or is not a valid one.")
 
         commodities = commodities[commodities["group"] == group]
         commodities.reset_index(drop=True, inplace=True)
@@ -129,9 +127,7 @@ def commodities_as_list(group=None):
         group = unidecode(group.strip().lower())
 
         if group not in commodity_groups_list():
-            raise ValueError(
-                "ERR#0077: introduced group does not exists or is not a valid one."
-            )
+            raise ValueError("ERR#0077: introduced group does not exists or is not a valid one.")
 
         return commodities[commodities["group"] == group]["name"].tolist()
 
@@ -181,9 +177,7 @@ def commodities_as_dict(group=None, columns=None, as_json=False):
         raise ValueError("ERR#0076: specified commodity group value not valid.")
 
     if not isinstance(as_json, bool):
-        raise ValueError(
-            "ERR#0002: as_json argument can just be True or False, bool type."
-        )
+        raise ValueError("ERR#0002: as_json argument can just be True or False, bool type.")
 
     resource_package = "investpy"
     resource_path = "/".join(("resources", "commodities.csv"))
@@ -205,10 +199,7 @@ def commodities_as_dict(group=None, columns=None, as_json=False):
         columns = commodities.columns.tolist()
     else:
         if not isinstance(columns, list):
-            raise ValueError(
-                "ERR#0020: specified columns argument is not a list, it can just be"
-                " list type."
-            )
+            raise ValueError("ERR#0020: specified columns argument is not a list, it can just be" " list type.")
 
     if not all(column in commodities.columns.tolist() for column in columns):
         raise ValueError(
@@ -225,20 +216,12 @@ def commodities_as_dict(group=None, columns=None, as_json=False):
         group = unidecode(group.strip().lower())
 
         if group not in commodity_groups_list():
-            raise ValueError(
-                "ERR#0077: introduced group does not exists or is not a valid one."
-            )
+            raise ValueError("ERR#0077: introduced group does not exists or is not a valid one.")
 
         if as_json:
-            return json.dumps(
-                commodities[commodities["group"] == group][columns].to_dict(
-                    orient="records"
-                )
-            )
+            return json.dumps(commodities[commodities["group"] == group][columns].to_dict(orient="records"))
         else:
-            return commodities[commodities["group"] == group][columns].to_dict(
-                orient="records"
-            )
+            return commodities[commodities["group"] == group][columns].to_dict(orient="records")
 
 
 def commodity_groups_list():

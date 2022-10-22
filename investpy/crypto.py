@@ -778,7 +778,7 @@ def get_cryptos_overview(as_json=False, n_results=100):
 
     url = "https://www.investing.com/crypto/currencies"
 
-    req = requests.get(url, headers=get_headers()er)
+    req = requests.get(url, headers=get_headers())
 
     root = fromstring(req.text)
     table = root.xpath(".//table[contains(@class, 'allCryptoTlb')]/tbody/tr")
